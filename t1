@@ -1,0 +1,10 @@
+.ippcode20
+DefVar GF@counter
+MOVE GF@counter string@
+label while
+JUMPIFEQ end GF@counter string@aaa
+write string@Promenna\032GF@counter\032obsahuje\032
+write string@\010
+concat GF@counter GF@counter string@aa
+jump while
+label end
