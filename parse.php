@@ -24,10 +24,12 @@ function check_arguments(){
  */
 function loadLine(){
     global $line_counter;
+    global $output;
 
     $line = fgets(STDIN);
     if(feof(STDIN)){
-        exit(0);
+        return $line;
+        //exit(0);
     }
 
     //deleting comments
@@ -49,6 +51,7 @@ function loadLine(){
             fprintf(STDERR, "chybná nebo chybějící hlavička ve zdrojovém kódu zapsaném v IPPcode20\n");
             exit(21);
         }
+        $output->write_program();
         return loadLine();
     }else{
         return $arr;
@@ -59,15 +62,26 @@ function loadLine(){
  * arg line > array of words in the line
  */
 function parse($line){
+    global $output;
+    global $line_counter;
+
     $instr = strtolower($line[0]);
     //testing
-    var_dump($instr);
+    //var_dump($instr);
     switch($instr){
         case "move":
         case "int2char":
         case "strlen":
         case "type":
             if(count($line) == 3 && check_variable_name($line[1]) && check_symbol_name($line[2])){
+                $output->write_instr($line_counter-1, strtoupper($instr));
+                $output->write_arg(1,"var",$line[1]);
+                if(check_variable_name($line[2])){
+                    $output->write_arg(2,"var",$line[2]);
+                }else{
+                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), preg_replace('/^(string|int|boolean|nil)@/', "", $line[2]));
+                }
+                $output->end_element(); //end of instruction
                 break;
             }
             err_23(); //exit
@@ -77,12 +91,17 @@ function parse($line){
         case "return":
         case "break":
             if(count($line) == 1){
+                $output->write_instr($line_counter-1, strtoupper($instr));
+                $output->end_element();
                 break;
             }
             err_23(); //exit
         case "defvar":
         case "pops":
             if(count($line) == 2 && check_variable_name($line[1])){
+                $output->write_instr($line_counter-1, strtoupper($instr));
+                $output->write_arg(1,"var",$line[1]);
+                $output->end_element(); //end of instruction
                 break;
             }
             err_23(); //exit
@@ -90,6 +109,9 @@ function parse($line){
         case "label":
         case "jump":
             if(count($line) == 2 && check_label_name($line[1])){
+                $output->write_instr($line_counter-1, strtoupper($instr));
+                $output->write_arg(1,"label",$line[1]);
+                $output->end_element(); //end of instruction
                 break;
             }
             err_23(); //exit
@@ -98,6 +120,13 @@ function parse($line){
         case "exit":
         case "dprint":
             if(count($line) == 2 && check_symbol_name($line[1])){
+                $output->write_instr($line_counter-1, strtoupper($instr));
+                if(check_variable_name($line[1])){
+                    $output->write_arg(1,"var",$line[1]);
+                }else{
+                    $output->write_arg(1, preg_replace('/@\S*$/', "",$line[1]), preg_replace('/^(string|int|boolean|nil)@/', "", $line[1]));
+                }
+                $output->end_element(); //end of instruction
                 break;
             }
             err_23(); //exit
@@ -116,17 +145,47 @@ function parse($line){
         case "getchar":
         case "setchar":
             if(count($line) == 4 && check_variable_name($line[1]) && check_symbol_name($line[2]) && check_symbol_name($line[3])){
+                $output->write_instr($line_counter-1, strtoupper($instr));
+                $output->write_arg(1,"var",$line[1]);
+                if(check_variable_name($line[2])){
+                    $output->write_arg(2,"var",$line[2]);
+                }else{
+                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), preg_replace('/^(string|int|boolean|nil)@/', "", $line[2]));
+                }
+                if(check_variable_name($line[3])){
+                    $output->write_arg(3,"var",$line[3]);
+                }else{
+                    $output->write_arg(3, preg_replace('/@\S*$/', "",$line[3]), preg_replace('/^(string|int|boolean|nil)@/', "", $line[3]));
+                }
+                $output->end_element(); //end of instruction
                 break;
             }
             err_23(); //exit
         case "read":
             if(count($line) == 3 && check_variable_name($line[1]) && check_type($line[2])){
+                $output->write_instr($line_counter-1, strtoupper($instr));
+                $output->write_arg(1,"var",$line[1]);
+                $output->write_arg(2,$line[2],"");
+                $output->end_element(); //end of instruction
                 break;
             }
             err_23(); //exit
         case "jumpifeq":
         case "jumpifneq":
             if(count($line) == 4 && check_label_name($line[1]) && check_symbol_name($line[2]) && check_symbol_name($line[3])){
+                $output->write_instr($line_counter-1, strtoupper($instr));
+                $output->write_arg(1,"label",$line[1]);
+                if(check_variable_name($line[2])){
+                    $output->write_arg(2,"var",$line[2]);
+                }else{
+                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), preg_replace('/^(string|int|boolean|nil)@/', "", $line[2]));
+                }
+                if(check_variable_name($line[3])){
+                    $output->write_arg(3,"var",$line[3]);
+                }else{
+                    $output->write_arg(3, preg_replace('/@\S*$/', "",$line[3]), preg_replace('/^(string|int|boolean|nil)@/', "", $line[3]));
+                }
+                $output->end_element(); //end of instruction
                 break;
             }
             err_23(); //exit
@@ -190,9 +249,93 @@ function err_23(){
     exit(23);
 }
 
-//pls rewrite his while and the ending with eof
-while(1){
-    parse(loadLine());
+/*-----------------------------------------------------------------------------------
+ *                      --  part    XML --
+ *-----------------------------------------------------------------------------------
+ */
+
+class Output_xml{
+    private $xw;
+    private $res;
+
+    //constructor of the class
+    public function __construct(){
+        $this->xw = xmlwriter_open_memory();
+        xmlwriter_set_indent($this->xw, 1);
+        $this->res = xmlwriter_set_indent_string($this->xw, '  ');
+
+        xmlwriter_start_document($this->xw, '1.0', 'UTF-8');
+    }
+
+    function content($text){
+        xmlwriter_text($this->xw, $text);
+    }
+    function start_element($name){
+        xmlwriter_start_element($this->xw, $name);
+    }
+    function start_attr($name){
+        xmlwriter_start_attribute($this->xw, $name);
+    }
+    function end_attr(){
+        xmlwriter_end_attribute($this->xw);
+    }
+    function end_element(){
+        xmlwriter_end_element($this->xw);
+    }
+    function end_doc(){
+        xmlwriter_end_document($this->xw);
+    }
+    public function write_xml_to_output(){
+        echo xmlwriter_output_memory($this->xw);
+    }
+
+    //NOT ENDED tags
+    function write_instr($id, $code){
+        $this->start_element("instruction");
+        $this->start_attr("order");
+        $this->content($id);
+        $this->end_attr();
+        $this->start_attr("opcode");
+        $this->content($code);
+        $this->end_attr();
+    }
+    function write_program(){
+        $this->start_element("program");
+        $this->start_attr("language");
+        $this->content("IPPcode20");
+        $this->end_attr();
+    }
+    //ENDED tag
+    function write_arg($num, $type, $text){
+        $this->start_element("arg".$num);
+        $this->start_attr("type");
+        $this->content($type);
+        $this->end_attr();
+        if(strlen($text) != 0){
+            $this->content($text);
+        }
+        $this->end_element();
+    }
 }
+
+/*-----------------------------------------------------------------------------------
+ *                      --  part    MAIN --
+ *-----------------------------------------------------------------------------------
+ */
+
+$output = new Output_xml;
+
+//pls rewrite his while and the ending with eof
+while(($line = loadLine()) !== false){
+    parse($line);
+}
+
+
+//ending program tag
+$output->end_element();
+//ending xml document
+$output->end_doc();
+//write xml to output
+$output->write_xml_to_output();
 
 ?>
