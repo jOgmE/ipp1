@@ -80,7 +80,7 @@ function parse($line){
                 if(check_variable_name($line[2])){
                     $output->write_arg(2,"var",$line[2]);
                 }else{
-                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), preg_replace('/^(string|int|boolean|nil)@/', "", $line[2]));
+                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), htmlspecialchars(preg_replace('/^(string|int|boolean|nil)@/', "", $line[2])));
                 }
                 $output->end_element(); //end of instruction
                 break;
@@ -125,7 +125,7 @@ function parse($line){
                 if(check_variable_name($line[1])){
                     $output->write_arg(1,"var",$line[1]);
                 }else{
-                    $output->write_arg(1, preg_replace('/@\S*$/', "",$line[1]), preg_replace('/^(string|int|boolean|nil)@/', "", $line[1]));
+                    $output->write_arg(1, preg_replace('/@\S*$/', "",$line[1]), htmlspecialchars(preg_replace('/^(string|int|boolean|nil)@/', "", $line[1])));
                 }
                 $output->end_element(); //end of instruction
                 break;
@@ -150,12 +150,12 @@ function parse($line){
                 if(check_variable_name($line[2])){
                     $output->write_arg(2,"var",$line[2]);
                 }else{
-                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), preg_replace('/^(string|int|boolean|nil)@/', "", $line[2]));
+                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), htmlspecialchars(preg_replace('/^(string|int|boolean|nil)@/', "", $line[2])));
                 }
                 if(check_variable_name($line[3])){
                     $output->write_arg(3,"var",$line[3]);
                 }else{
-                    $output->write_arg(3, preg_replace('/@\S*$/', "",$line[3]), preg_replace('/^(string|int|boolean|nil)@/', "", $line[3]));
+                    $output->write_arg(3, preg_replace('/@\S*$/', "",$line[3]), htmlspecialchars(preg_replace('/^(string|int|boolean|nil)@/', "", $line[3])));
                 }
                 $output->end_element(); //end of instruction
                 break;
@@ -178,12 +178,12 @@ function parse($line){
                 if(check_variable_name($line[2])){
                     $output->write_arg(2,"var",$line[2]);
                 }else{
-                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), preg_replace('/^(string|int|boolean|nil)@/', "", $line[2]));
+                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), htmlspecialchars(preg_replace('/^(string|int|boolean|nil)@/', "", $line[2])));
                 }
                 if(check_variable_name($line[3])){
                     $output->write_arg(3,"var",$line[3]);
                 }else{
-                    $output->write_arg(3, preg_replace('/@\S*$/', "",$line[3]), preg_replace('/^(string|int|boolean|nil)@/', "", $line[3]));
+                    $output->write_arg(3, preg_replace('/@\S*$/', "",$line[3]), htmlspecialchars(preg_replace('/^(string|int|boolean|nil)@/', "", $line[3])));
                 }
                 $output->end_element(); //end of instruction
                 break;
