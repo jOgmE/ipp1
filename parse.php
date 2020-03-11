@@ -2,6 +2,8 @@
 
 $line_counter = 0;
 
+/* Function what checks program arguments
+ */
 function check_arguments(){
     //arguments
     if($argc == 2){
@@ -9,11 +11,11 @@ function check_arguments(){
             echo "put help here"; //TODO
             exit(0);
         }else{
-            fprintf(STDERR, "put error here\n");
+            fprintf(STDERR, "Wrong argumen given\n");
             exit(10);
         }
-    }elseif($argc ==1){}else{
-            fprintf(STDERR, "put error here\n");
+    }elseif($argc == 1){}else{
+            fprintf(STDERR, "Too much arguments given\n");
             exit(10);
     }
 }
@@ -66,8 +68,9 @@ function parse($line){
     global $line_counter;
 
     $instr = strtolower($line[0]);
-    //testing
-    //var_dump($instr);
+    //Decide what function is on the line
+    //and do the proper checking
+    //then write it to the xml
     switch($instr){
         case "move":
         case "int2char":
@@ -322,6 +325,8 @@ class Output_xml{
  *                      --  part    MAIN --
  *-----------------------------------------------------------------------------------
  */
+
+check_arguments();
 
 $output = new Output_xml;
 
