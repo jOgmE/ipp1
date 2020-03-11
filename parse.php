@@ -5,10 +5,11 @@ $line_counter = 0;
 /* Function what checks program arguments
  */
 function check_arguments(){
+    global $argc, $argv;
     //arguments
     if($argc == 2){
         if($argv[1] == "--help"){
-            echo "put help here"; //TODO
+            echo "Skript typu filtr načte ze standardního vstupu zdrojový kód v IPP-code20, zkontroluje lexikální a syntaktickou správnost kódu a vypíše na standardnívýstup XML reprezentaci programu dle specifikace. Tento skript bude pracovat s těmito parametry:\n--help vypise tuto spravu\n"; //TODO
             exit(0);
         }else{
             fprintf(STDERR, "Wrong argumen given\n");
