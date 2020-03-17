@@ -29,11 +29,11 @@ function loadLine(){
     global $line_counter;
     global $output;
 
-    $line = fgets(STDIN);
     if(feof(STDIN)){
-        return $line;
+        return fgets(STDIN);
         //exit(0);
     }
+    $line = fgets(STDIN);
 
     //deleting comments
     $comment = preg_split('/#/', trim($line));
@@ -69,6 +69,7 @@ function parse($line){
     global $line_counter;
 
     $instr = strtolower($line[0]);
+    
     //Decide what function is on the line
     //and do the proper checking
     //then write it to the xml
@@ -84,7 +85,7 @@ function parse($line){
                 if(check_variable_name($line[2])){
                     $output->write_arg(2,"var",$line[2]);
                 }else{
-                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), htmlspecialchars(preg_replace('/^(string|int|boolean|nil)@/', "", $line[2])));
+                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), htmlspecialchars(preg_replace('/^(string|int|bool|nil)@/', "", $line[2])));
                 }
                 $output->end_element(); //end of instruction
                 break;
@@ -129,7 +130,7 @@ function parse($line){
                 if(check_variable_name($line[1])){
                     $output->write_arg(1,"var",$line[1]);
                 }else{
-                    $output->write_arg(1, preg_replace('/@\S*$/', "",$line[1]), htmlspecialchars(preg_replace('/^(string|int|boolean|nil)@/', "", $line[1])));
+                    $output->write_arg(1, preg_replace('/@\S*$/', "",$line[1]), htmlspecialchars(preg_replace('/^(string|int|bool|nil)@/', "", $line[1])));
                 }
                 $output->end_element(); //end of instruction
                 break;
@@ -154,12 +155,12 @@ function parse($line){
                 if(check_variable_name($line[2])){
                     $output->write_arg(2,"var",$line[2]);
                 }else{
-                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), htmlspecialchars(preg_replace('/^(string|int|boolean|nil)@/', "", $line[2])));
+                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), htmlspecialchars(preg_replace('/^(string|int|bool|nil)@/', "", $line[2])));
                 }
                 if(check_variable_name($line[3])){
                     $output->write_arg(3,"var",$line[3]);
                 }else{
-                    $output->write_arg(3, preg_replace('/@\S*$/', "",$line[3]), htmlspecialchars(preg_replace('/^(string|int|boolean|nil)@/', "", $line[3])));
+                    $output->write_arg(3, preg_replace('/@\S*$/', "",$line[3]), htmlspecialchars(preg_replace('/^(string|int|bool|nil)@/', "", $line[3])));
                 }
                 $output->end_element(); //end of instruction
                 break;
@@ -182,12 +183,12 @@ function parse($line){
                 if(check_variable_name($line[2])){
                     $output->write_arg(2,"var",$line[2]);
                 }else{
-                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), htmlspecialchars(preg_replace('/^(string|int|boolean|nil)@/', "", $line[2])));
+                    $output->write_arg(2, preg_replace('/@\S*$/', "",$line[2]), htmlspecialchars(preg_replace('/^(string|int|bool|nil)@/', "", $line[2])));
                 }
                 if(check_variable_name($line[3])){
                     $output->write_arg(3,"var",$line[3]);
                 }else{
-                    $output->write_arg(3, preg_replace('/@\S*$/', "",$line[3]), htmlspecialchars(preg_replace('/^(string|int|boolean|nil)@/', "", $line[3])));
+                    $output->write_arg(3, preg_replace('/@\S*$/', "",$line[3]), htmlspecialchars(preg_replace('/^(string|int|bool|nil)@/', "", $line[3])));
                 }
                 $output->end_element(); //end of instruction
                 break;
@@ -266,7 +267,7 @@ class Output_xml{
     public function __construct(){
         $this->xw = xmlwriter_open_memory();
         xmlwriter_set_indent($this->xw, 1);
-        $this->res = xmlwriter_set_indent_string($this->xw, '  ');
+        $this->res = xmlwriter_set_indent_string($this->xw, '    ');
 
         xmlwriter_start_document($this->xw, '1.0', 'UTF-8');
     }
