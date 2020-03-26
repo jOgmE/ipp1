@@ -60,3 +60,14 @@ class Files:
         return elem.attr
 
 ##TODO write functions for INPUT
+
+class Instr:
+    instructions = {'move', 'createframe', 'pushframe', 'popframe', 'defvar', 'call', \
+            'return', 'pushs', 'pops', 'add', 'sub', 'mul', 'idiv', 'lt', 'gt', 'eq', \
+            'and', 'or', 'not', 'int2char', 'stri2int', 'read', 'write', 'concat', \
+            'strlen', 'getchar', 'setchar', 'type', 'label', 'jump', 'jumpifeq', \
+            'jumpifneq', 'exit', 'dprint', 'break'}
+    # 1 function = 1 intruction
+    # .
+    # .
+    # .
