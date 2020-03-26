@@ -12,7 +12,7 @@ function check_arguments(){
             echo "Skript typu filtr načte ze standardního vstupu zdrojový kód v IPP-code20, zkontroluje lexikální a syntaktickou správnost kódu a vypíše na standardnívýstup XML reprezentaci programu dle specifikace. Tento skript bude pracovat s těmito parametry:\n--help vypise tuto spravu\n"; //TODO
             exit(0);
         }else{
-            fprintf(STDERR, "Wrong argumen given\n");
+            fprintf(STDERR, "Wrong argument given\n");
             exit(10);
         }
     }elseif($argc == 1){}else{
