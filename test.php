@@ -134,9 +134,6 @@ function testing($file_name){
 #  true  - identical files
 function check_difference($file1, $file2){
     $out = shell_exec("diff " . $file1 . ' ' . $file2);
-    if(!empty($out)){
-        echo $file1,"\n", $out;
-    }
     return empty($out);
 }
 
