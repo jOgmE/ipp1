@@ -39,6 +39,12 @@ class BadTag(Exception):
 class NotFound(Exception):
     ###Raised when an item not found in the array###
     pass
+class FrameNotDefined(Exception):
+    ###Raised when accessing non defined Mem frame###
+    pass
+class VarRedefinition(Exception):
+    ###Raised when a redefinition of a var in a frame###
+    pass
 
 #----------------------------------------------------------------------------------------
 #                            CLASS DEALING WITH THE INPUT FILES
@@ -157,7 +163,70 @@ class Instr:
     # .
 
 #----------------------------------------------------------------------------------------
-#                                  TESTING/MAIN PART
+#                               CLASS FOR STACK
+#----------------------------------------------------------------------------------------
+class Stack:
+    def __init__(self):
+        self.items = []
+    def push(self, item):
+        self.items.append(item)
+    def pop(self):
+        return self.items.pop()
+    def is_empty(self):
+        return self.items == []
+    def size(self):
+        return len(self.items)
+    def top(self):
+        return self.items[len(self.items)-1]
+
+#----------------------------------------------------------------------------------------
+#                               CLASS FOR MEMORY
+#----------------------------------------------------------------------------------------
+class Mem:
+    #variables
+    gf = {}
+    #lf = Stack()
+    #tf = {}
+    data_stack = Stack()
+    call_stack = Stack()
+    program_counter = 0
+
+    def in_frame(f_type, v_key):
+        #f_type can be gf,lf or tf
+        if(f_type == "gf"):
+            return v_key in gf
+        if(f_type == "lf"):
+            if(hasattrib(Mem, 'lf')):
+                return v_key in lf.top
+            raise FrameNotDefined
+        if(f_type == "tf"):
+            if(hasattrib(Mem, 'tf')):
+                return v_key in tf
+            raise FrameNotDefined
+    def create_local_frame():
+        Mem.lf = Stack()
+    def create_temp_frame():
+        Mem.tf = {}
+    def del_local_frame():
+        del Mem.lf
+    def del_temp_frame():
+        del Mem.tf
+    def create_var(f_type, v_key):
+        if(f_type == "gf"):
+            if(in_frame("gf", v_key)):
+                raise VarRedefinition
+            gf.update({v_key, []})
+        if(f_type == "lf"):
+            if(hasattrib(Mem, 'lf')):
+                if(in_frame("lf", v_key)):
+                    raise VarRedefinition
+    def add_var(f_type, v_key, v_type, v_val):
+        if(f_type == "gf"):
+            gf.update({v_key:[v_type, v_val]})
+            #TODO
+
+#----------------------------------------------------------------------------------------
+#                               TESTING/MAIN PART
 #----------------------------------------------------------------------------------------
 f = XmlFile(args.source, args.input)
 b = True
