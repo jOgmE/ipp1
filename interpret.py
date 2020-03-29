@@ -6,6 +6,7 @@
 import argparse
 import sys
 import xml.etree.ElementTree as ET
+import re
 
 #----------------------------------------------------------------------------------------
 #                               PARSING ARGUMENTS
@@ -44,6 +45,18 @@ class FrameNotDefined(Exception):
     pass
 class VarRedefinition(Exception):
     ###Raised when a redefinition of a var in a frame###
+    pass
+class VarNotDefined(Exception):
+    ###Raised when the variable is not defined in the frame###
+    pass
+class InvalidOperand(Exception):
+    ###Raised when the passed operand of the instr is bad###
+    pass
+class BadOperandType(Exception):
+    ###Raised when an instruction has wrong operand types e.g. var,symb,lab###
+    pass
+class NonInicializedVar(Exception):
+    ###Raised when trying to read from a noninicialized variable###
     pass
 
 #----------------------------------------------------------------------------------------
@@ -149,18 +162,24 @@ class XmlFile:
 ##TODO write functions for INPUT
 
 #----------------------------------------------------------------------------------------
-#                             CLASS HANDLING INSTRUCTIONS
+#                           CHECKING DATA TYPES
 #----------------------------------------------------------------------------------------
-class Instr:
-    instructions = {'MOVE', 'CREATEFRAME', 'PUSHFRAME', 'POPFRAME', 'DEFVAR', 'CALL', \
-            'RETURN', 'PUSHS', 'POPS', 'ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', \
-            'AND', 'OR', 'NOT', 'INT2CHAR', 'STRI2INT', 'READ', 'WRITE', 'CONCAT', \
-            'STRLEN', 'GETCHAR', 'SETCHAR', 'TYPE', 'LABEL', 'JUMP', 'JUMPIFEQ', \
-            'JUMPIFNEQ', 'EXIT', 'DPRINT', 'BREAK'}
-    # 1 function = 1 intruction
-    # .
-    # .
-    # .
+class Data:
+    #TODO
+    def check(smth):
+        if(re.fullmach('/^(GF|TF|LF)@[a-zA-Z_$&%*!?\-]([a-zA-Z_$&%*!?\-\d])*$/', smth)):
+            tmp = smth.split("@") #frame, name
+            return ['var', tmp[0], tmp[1]]
+        if(re.fullmach('/^[a-zA-Z_$&%*!?\-]([a-zA-Z_$&%*!?\-\d])*$/', smth)):
+            return ['label', smth]
+        if(re.fullmach('/^nil@nil$/', smth) or
+                re.fullmach('/^bool@(true|false)$/', smth) or
+                re.fullmach('/^int@(\+|\-)*\d+$/', smth) or
+                re.fullmach('/^string@([^\\#\s]|\\\d{3})*$/', smth)):
+            tmp = smth.split("@", 1)
+            return ['symb', tmp[0], tmp[1]]
+        #nothign matched
+        raise InvalidOperand
 
 #----------------------------------------------------------------------------------------
 #                               CLASS FOR STACK
@@ -197,7 +216,7 @@ class Mem:
             return v_key in gf
         if(f_type == "lf"):
             if(hasattrib(Mem, 'lf')):
-                return v_key in lf.top
+                return v_key in lf.top()
             raise FrameNotDefined
         if(f_type == "tf"):
             if(hasattrib(Mem, 'tf')):
@@ -211,30 +230,130 @@ class Mem:
         del Mem.lf
     def del_temp_frame():
         del Mem.tf
+    def push_tmp_to_loc():
+        if(hasattrib(Mem, "lf") and hasattrib(Mem, "tf")):
+            lf.push(tf)
+        else:
+            raise FrameNotDefined
     def create_var(f_type, v_key):
+        #global frame
         if(f_type == "gf"):
             if(in_frame("gf", v_key)):
                 raise VarRedefinition
             gf.update({v_key, []})
+        #local frame
         if(f_type == "lf"):
             if(hasattrib(Mem, 'lf')):
                 if(in_frame("lf", v_key)):
                     raise VarRedefinition
+                lf.top().update({v_key, []})
+            else:
+                raise FrameNotDefined
+        #temporary frame
+        if(f_type == "tf"):
+            if(hasattrib(Mem, "tf")):
+                if(in_frame("tf", v_key)):
+                    raise VarRedefinition
+                tf.update({v_key, []})
+            else:
+                raise FrameNotDefined
+
     def add_var(f_type, v_key, v_type, v_val):
+        #global frame
         if(f_type == "gf"):
-            gf.update({v_key:[v_type, v_val]})
-            #TODO
+            if(in_frame("gf", v_key)):
+                gf.update({v_key:[v_type, v_val]})
+            else:
+                raise VarNotDefined
+        #local frame
+        if(f_type == "lf"):
+            if(hasattrib(Mem, 'lf')):
+                if(in_frame("lf", v_key)):
+                    lf.top().update({v_key:[v_type, v_val]})
+                else:
+                    raise VarNotDefined
+            else:
+                raise FrameNotDefined
+        #temporary frame
+        if(f_type == "tf"):
+            if(hasattrib(Mem, "tf")):
+                if(in_frame("tf", v_key)):
+                    tf.update({v_key:[v_type, v_val]})
+                else:
+                    raise VarNotDefined
+            else:
+                raise FrameNotDefined
+    def get_var(f_type, v_key):
+        try:
+            if(in_frame(f_type, v_key)):
+                #without error
+                if(f_type == "gf"):
+                    return gf[v_key]
+                if(f_type == "lf"):
+                    return lf.top()[v_key]
+                if(f_type == "tf"):
+                    return tf[v_key]
+            else:
+                raise VarNotFound
+        except FrameNotDefined:
+            raise FrameNotDefined
+
+#----------------------------------------------------------------------------------------
+#                             CLASS HANDLING INSTRUCTIONS
+#----------------------------------------------------------------------------------------
+class Instr:
+    instructions = {'MOVE', 'CREATEFRAME', 'PUSHFRAME', 'POPFRAME', 'DEFVAR', 'CALL', \
+            'RETURN', 'PUSHS', 'POPS', 'ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', \
+            'AND', 'OR', 'NOT', 'INT2CHAR', 'STRI2INT', 'READ', 'WRITE', 'CONCAT', \
+            'STRLEN', 'GETCHAR', 'SETCHAR', 'TYPE', 'LABEL', 'JUMP', 'JUMPIFEQ', \
+            'JUMPIFNEQ', 'EXIT', 'DPRINT', 'BREAK'}
+    def valid_instr(instr):
+        return instr in instructions
+
+    def move(var, symb):
+        try:
+            variable = Data.check(var)
+            symbol = Data.check(symb)
+        except InvalidOperand:
+            raise InvalidOperand
+        if(variable[0] == 'var'):
+            try:
+                if(symbol[0] == 'symb'):
+                    Mem.add_var(variable[1], variable[2], symbol[1], symbol[2])
+                elif(symbol[0] == 'var'):
+                    ret = Mem.get_var(symbol[1], symbol[2])
+                    if(ret == []):
+                        raise NonInicializedVar
+                    Mem.add_var(variable[1], variable[2], typ, val)
+                else:
+                    raise BadOperandType
+            except VarNotDefined:
+                raise VarNotDefined
+            except FrameNotDefined:
+                raise FrameNotDefined
+            except NonInicializedVar:
+                raise NonInicializedVar
+        else:
+            raise BadOperandType
+    
+    def createframe():
+        Mem.create_temp_frame()
+
+    def pushframe():
+        try:
+            Mem.push_tmp_to_loc()
+            Mem.del_temp_frame()
+        except FrameNotDefined:
+            raise FrameNotDefined
+
+    def popframe():
+        pass
+    # 1 function = 1 intruction
+    # .
+    # .
+    # .
 
 #----------------------------------------------------------------------------------------
 #                               TESTING/MAIN PART
 #----------------------------------------------------------------------------------------
 f = XmlFile(args.source, args.input)
-b = True
-
-for x in f.instr_iter:
-    if(x.attrib['order'] == '1'):
-        f.instr_iter.jump(4)
-    if(x.attrib['order'] == '5' and b):
-        b = False
-        f.instr_iter.jump(2)
-    print(x.attrib)
