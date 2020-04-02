@@ -84,6 +84,21 @@ class XmlFile:
             #checking missing 'instruction' attrib
             if(len([x for x in xml_root if x.tag != 'instruction']) != 0):
                 raise BadTag 
+            #run through the code and save every label and their order number
+            #check for redefinition and syntax correctness
+            #TODO can attrib be case-insensitive????
+            check_label_arr = [label for label in self.arr if label.attrib['opcode'].lower() == "label"]
+
+            for label in self.arr:
+                key = get_dict_key(label.attrib, 'opcode')
+                if(len(key) != 1):
+                    raise BadTag
+                if(label.attrib[key] == "label"):
+                    #do checking
+                    #multiple arguments in instruction
+                    #label name
+
+            #Data.label_book = 
 
         def __iter__(self):
             #counter for the iteration through arr
@@ -165,6 +180,8 @@ class XmlFile:
 #                           CHECKING DATA TYPES
 #----------------------------------------------------------------------------------------
 class Data:
+    #label:order number
+    label_book = {}
     #TODO
     def check(smth):
         if(re.fullmach('/^(GF|TF|LF)@[a-zA-Z_$&%*!?\-]([a-zA-Z_$&%*!?\-\d])*$/', smth)):
@@ -180,6 +197,11 @@ class Data:
             return ['symb', tmp[0], tmp[1]]
         #nothign matched
         raise InvalidOperand
+
+    #searches for a given key in lowcase and returns the key what can be
+    #case insensitive
+    def get_dict_key(dictionary, lowcase_key):
+        return [key for key in dictionary.keys() if key.lower() == lowcase_key]
 
 #----------------------------------------------------------------------------------------
 #                               CLASS FOR STACK
@@ -208,19 +230,18 @@ class Mem:
     #tf = {}
     data_stack = Stack()
     call_stack = Stack()
-    program_counter = 0
 
     def in_frame(f_type, v_key):
         #f_type can be gf,lf or tf
         if(f_type == "gf"):
-            return v_key in gf
+            return v_key in Mem.gf
         if(f_type == "lf"):
             if(hasattrib(Mem, 'lf')):
-                return v_key in lf.top()
+                return v_key in Mem.lf.top()
             raise FrameNotDefined
         if(f_type == "tf"):
             if(hasattrib(Mem, 'tf')):
-                return v_key in tf
+                return v_key in Mem.tf
             raise FrameNotDefined
     def create_local_frame():
         Mem.lf = Stack()
@@ -232,21 +253,24 @@ class Mem:
         del Mem.tf
     def push_tmp_to_loc():
         if(hasattrib(Mem, "lf") and hasattrib(Mem, "tf")):
-            lf.push(tf)
+            Mem.lf.push(tf)
         else:
             raise FrameNotDefined
-    def create_var(f_type, v_key):
+    def pop_tmp_from_loc():
+        if(hasattrib(Mem, "lf")):
+            Mem.tf = Mem.lf.pop()
+    def declare_var(f_type, v_key):
         #global frame
         if(f_type == "gf"):
             if(in_frame("gf", v_key)):
                 raise VarRedefinition
-            gf.update({v_key, []})
+            Mem.gf.update({v_key, []})
         #local frame
         if(f_type == "lf"):
             if(hasattrib(Mem, 'lf')):
                 if(in_frame("lf", v_key)):
                     raise VarRedefinition
-                lf.top().update({v_key, []})
+                Mem.lf.top().update({v_key, []})
             else:
                 raise FrameNotDefined
         #temporary frame
@@ -254,7 +278,7 @@ class Mem:
             if(hasattrib(Mem, "tf")):
                 if(in_frame("tf", v_key)):
                     raise VarRedefinition
-                tf.update({v_key, []})
+                Mem.tf.update({v_key, []})
             else:
                 raise FrameNotDefined
 
@@ -262,14 +286,14 @@ class Mem:
         #global frame
         if(f_type == "gf"):
             if(in_frame("gf", v_key)):
-                gf.update({v_key:[v_type, v_val]})
+                Mem.gf.update({v_key:[v_type, v_val]})
             else:
                 raise VarNotDefined
         #local frame
         if(f_type == "lf"):
             if(hasattrib(Mem, 'lf')):
                 if(in_frame("lf", v_key)):
-                    lf.top().update({v_key:[v_type, v_val]})
+                    Mem.lf.top().update({v_key:[v_type, v_val]})
                 else:
                     raise VarNotDefined
             else:
@@ -278,7 +302,7 @@ class Mem:
         if(f_type == "tf"):
             if(hasattrib(Mem, "tf")):
                 if(in_frame("tf", v_key)):
-                    tf.update({v_key:[v_type, v_val]})
+                    Mem.tf.update({v_key:[v_type, v_val]})
                 else:
                     raise VarNotDefined
             else:
@@ -288,11 +312,11 @@ class Mem:
             if(in_frame(f_type, v_key)):
                 #without error
                 if(f_type == "gf"):
-                    return gf[v_key]
+                    return Mem.gf[v_key]
                 if(f_type == "lf"):
-                    return lf.top()[v_key]
+                    return Mem.lf.top()[v_key]
                 if(f_type == "tf"):
-                    return tf[v_key]
+                    return Mem.tf[v_key]
             else:
                 raise VarNotFound
         except FrameNotDefined:
@@ -347,7 +371,28 @@ class Instr:
             raise FrameNotDefined
 
     def popframe():
-        pass
+        Mem.pop_tmp_from_loc()
+    
+    def defvar(variable):
+        #check var correctness
+        try:
+            ret = Data.check(variable)
+        except InvalidOperand:
+            raise InvalidOperand
+
+        if(ret[0] != 'var'):
+            raise InvalidOprend
+        #checking var name existence in the given frame
+        if(Mem.in_frame(ret[1], ret[2])):
+            raise VarRedefinition
+        #variable declaration
+        Mem.declare_var(ret[1], ret[2])
+
+    def call(label, order_number):
+        #saving the next instr number after the call
+        Mem.call_stack.push(order_number + 1)
+        
+
     # 1 function = 1 intruction
     # .
     # .
