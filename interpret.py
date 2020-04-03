@@ -72,8 +72,16 @@ class XmlFile:
             self.arr = [x for x in xml_root]
             self.length = len(self.arr)
             self.arr.sort(key=self.sort_key)
+            self.last_instr = self.arr[self.length -1].attrib['order']
+
+            #checking instr attributes
+            for instr in self.arr:
+                if(not 'opcode' in instr.attrib and not 'order' in instr.attrib \
+                        and len(instr.attrib) != 2):
+                    raise BadTag
 
             #checking negative order number
+            #only the first because sorted array
             if(int(self.arr[0].attrib['order']) < 0):
                 raise NegativeOrderNumber
 
@@ -86,19 +94,25 @@ class XmlFile:
                 raise BadTag 
             #run through the code and save every label and their order number
             #check for redefinition and syntax correctness
-            #TODO can attrib be case-insensitive????
             check_label_arr = [label for label in self.arr if label.attrib['opcode'].lower() == "label"]
+            if(len(check_label_arr) != len(set(check_label_arr))):
+                raise BadTag
 
-            for label in self.arr:
-                key = get_dict_key(label.attrib, 'opcode')
-                if(len(key) != 1):
-                    raise BadTag
-                if(label.attrib[key] == "label"):
-                    #do checking
-                    #multiple arguments in instruction
-                    #label name
-
-            #Data.label_book = 
+            for lab in check_label_arr:
+                #element lvl
+                for arg in lab:
+                    #instr arg lvl
+                    if(arg.tag != "arg1"):
+                        raise InvalidOperand
+                    if(arg.attrib['type'].lower() != "label"):
+                        raise InvalidOperand
+                    except InvalidOperand:
+                        raise InvalidOperand
+                    #check label syntax
+                    if(Data.check(arg.text)[0] != 'label'):
+                        raise InvalidOperand
+                    #filling the dict with labels
+                    Data.label_book.update({arg.text:lab.attrib['order']})
 
         def __iter__(self):
             #counter for the iteration through arr
@@ -388,10 +402,20 @@ class Instr:
         #variable declaration
         Mem.declare_var(ret[1], ret[2])
 
-    def call(label, order_number):
+    def call(label, order_number, instr_iterator):
+        #check TODO last_instr > order number
         #saving the next instr number after the call
         Mem.call_stack.push(order_number + 1)
-        
+        try:
+            instr_iterator.jump(Data.label_book[label])
+        except:
+            #not found
+            raise InvalidOperand
+
+    def return(instr_iterator):
+        if(Mem.call_stack.size() < 1):
+            pass #raise error
+        instr_iterator.jump(Mem.call_stack.pop())
 
     # 1 function = 1 intruction
     # .
