@@ -62,7 +62,7 @@ class NonInicializedVar(Exception):
 #----------------------------------------------------------------------------------------
 #                            CLASS DEALING WITH THE INPUT FILES
 #----------------------------------------------------------------------------------------
-class XmlFile:
+class Files:
 
     #Nested class for traversing through instructions
     #implemented jump for jumping jumpers
@@ -146,41 +146,46 @@ class XmlFile:
                 raise sys.exc_info()
     
 ##continuation of the XmlFile class
-    def __init__(self, source_path, input_path):
-        #opening the source
-        if(source_path == 'stdin'):
-            self.source_file = sys.stdin
-        else:
-            try:
-                self.xml = ET.parse(source_path)
-                self.xml_root = self.xml.getroot()
-                self.instr_iter = self.InstructionIterator(self.xml_root)
-            except:
-                raise sys.exc_info()
+    #def __init__(self, source_path, input_path):
+    #opening the source
+    source_path = args.source
+    input_path = args.input
 
-        #checking header
-        if(self.root.attrib['language'].lower() != 'ippcode20'):
-            raise WrongHeaderError
+    if(source_path == 'stdin'):
+        #source_path remains stdin
+        pass
+    else:
+        try:
+            Files.xml = ET.parse(source_path)
+            Files.xml_root = Files.xml.getroot()
+            Files.instr_iter = Files.InstructionIterator(Files.xml_root)
+        except:
+            raise sys.exc_info()
 
-        #opening the input
-        if(input_path == 'stdin'):
-            self.input_file = sys.stdin
-        else:
-            try:
-                self.input_file = open(source_path, 'r');
-            except:
-                raise sys.exc_info()
+    #checking header
+    if(Files.root.attrib['language'].lower() != 'ippcode20'):
+        raise WrongHeaderError
+
+    #opening the input
+    if(input_path == 'stdin'):
+        #input_path remains stdin
+        pass
+    else:
+        try:
+            Files.input_file = open(source_path, 'r');
+        except:
+            raise sys.exc_info()
 
 #generator for instruction arguments
-    def get_arg(self, instr):
+    def get_arg(instr):
         for arg in instr:
             yield arg
 #header attribs
-    def get_header_attrib(self):
-        return self.root.attr
+    def get_header_attrib():
+        return Files.root.attr
 #header tag
-    def get_header_tag(self):
-        return self.root.tag
+    def get_header_tag():
+        return Files.root.tag
 #accessing an elements tag
     def get_element_tag(elem):
         return elem.tag
@@ -197,18 +202,30 @@ class Data:
     #label:order number
     label_book = {}
     #TODO
-    def check(smth):
-        if(re.fullmach('/^(GF|TF|LF)@[a-zA-Z_$&%*!?\-]([a-zA-Z_$&%*!?\-\d])*$/', smth)):
-            tmp = smth.split("@") #frame, name
+    def check(att):
+        #variable
+        if(re.fullmach('/^(GF|TF|LF)@[a-zA-Z_$&%*!?\-]([a-zA-Z_$&%*!?\-\d])*$/', att.text)):
+            tmp = att.text.split("@") #frame, name
+            #[var, frame, name]
             return ['var', tmp[0], tmp[1]]
-        if(re.fullmach('/^[a-zA-Z_$&%*!?\-]([a-zA-Z_$&%*!?\-\d])*$/', smth)):
-            return ['label', smth]
-        if(re.fullmach('/^nil@nil$/', smth) or
-                re.fullmach('/^bool@(true|false)$/', smth) or
-                re.fullmach('/^int@(\+|\-)*\d+$/', smth) or
-                re.fullmach('/^string@([^\\#\s]|\\\d{3})*$/', smth)):
-            tmp = smth.split("@", 1)
-            return ['symb', tmp[0], tmp[1]]
+
+        #label
+        if(re.fullmach('/^[a-zA-Z_$&%*!?\-]([a-zA-Z_$&%*!?\-\d])*$/', att.text)):
+            #[label, name]
+            return ['label', att.text]
+
+        #symbol
+        typ = att.attrib['type'].lower()
+        if((re.fullmach('/^nil$/', att.text) and typ == 'nil') or \
+                (re.fullmach('/^(true|false)$/', att.text) and typ == 'bool') or \
+                (re.fullmach('/^(\+|\-)*\d+$/', att.text) and typ == 'int') or \
+                (re.fullmach('/^([^\\#\s]|\\\d{3})*$/', att.text) and typ == 'string')):
+            #[symb, type, value]
+            return ['symb', typ, att.text]
+
+        #type
+        if(typ == 'type' and re.fullmatch('/(int|string|bool)/', att.text)):
+            return ['type', att.text]
         #nothign matched
         raise InvalidOperand
 
@@ -345,15 +362,26 @@ class Instr:
             'AND', 'OR', 'NOT', 'INT2CHAR', 'STRI2INT', 'READ', 'WRITE', 'CONCAT', \
             'STRLEN', 'GETCHAR', 'SETCHAR', 'TYPE', 'LABEL', 'JUMP', 'JUMPIFEQ', \
             'JUMPIFNEQ', 'EXIT', 'DPRINT', 'BREAK'}
+
+    instr_var_symb = ('MOVE', 'INT2CHAR', 'STRLEN', 'TYPE', 'NOT')
+    instr_empty = ('CREATEFRAME', 'PUSHFRAME', 'POPFRAME', 'RETURN', 'BREAK')
+    instr_var = ('DEFVAR', 'POPS')
+    instr_lab = ('CALL', 'LABEL', 'JUMP')
+    instr_symb = ('PUSHS', 'WRITE', 'EXIT', 'DPRINT')
+    instr_var_symb_symb = ('ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', 'AND', 'OR' \
+                            'STRI2INT', 'CONCAT', 'GETCHAR', 'SETCHAR')
+    instr_var_typ = ('READ')
+    instr_lab_symb = ('JUMPIFEQ', 'JUMPIFNEQ')
+
     def valid_instr(instr):
         return instr in instructions
 
-    def move(var, symb):
-        try:
-            variable = Data.check(var)
-            symbol = Data.check(symb)
-        except InvalidOperand:
-            raise InvalidOperand
+    def move(variable, symbol):
+        #try:
+        #    variable = Data.check(var)
+        #    symbol = Data.check(symb)
+        #except InvalidOperand:
+        #    raise InvalidOperand
         if(variable[0] == 'var'):
             try:
                 if(symbol[0] == 'symb'):
@@ -395,7 +423,7 @@ class Instr:
             raise InvalidOperand
 
         if(ret[0] != 'var'):
-            raise InvalidOprend
+            raise InvalidOperand
         #checking var name existence in the given frame
         if(Mem.in_frame(ret[1], ret[2])):
             raise VarRedefinition
@@ -423,6 +451,49 @@ class Instr:
     # .
 
 #----------------------------------------------------------------------------------------
+#                                   INTERPRET
+#----------------------------------------------------------------------------------------
+class Interpret:
+    for instr in Files.instr_iter:
+        code = instr.attrib['opcode'] #should be uppercase
+        arg_arr = []
+        for a in instr:
+            Data.check(a.text)
+            arg_arr.append([a.attrib['type'], a.text])
+
+        #calling instructions
+        if code in Instr.instr_var_symb:
+            if(len(arg_arr) != 2):
+                pass #raise error
+            var = Data.check(arg_arr[0])
+            symb = Data.check(arg_arr[1])
+            if(var[0] != 'var' and (symb[0] != 'var' or symb[0] != 'symb')):
+                pass #raise error
+        elif code in Instr.instr_empty:
+            if(len(arg_arr) != 0):
+                pass
+        elif code in Instr.instr_var:
+            if(len(arg_arr) != 1):
+                pass
+            var = Data.check(arg_arr[0])
+        elif code in Instr.instr_lab:
+            if(len(arg_arr) != 1):
+                pass
+            lab = Data.check(arg_arr[0])
+        elif code in Instr.instr_symb:
+            if(len(arg_arr) != 1):
+                pass
+            symb = Data.check(arg_arr[0])
+        elif code in Instr.instr_var_symb_symb:
+            if(len(arg_arr) != 3):
+                pass
+            var = Data.check(arg_arr[0])
+            symb1 = Data.check(arg_arr[1])
+            symb2 = Data.check(arg_arr[2])
+            #TODO rewrite these ^ to list
+            #what will be passing to instr fce
+
+#----------------------------------------------------------------------------------------
 #                               TESTING/MAIN PART
 #----------------------------------------------------------------------------------------
-f = XmlFile(args.source, args.input)
+#f = XmlFile(args.source, args.input)
