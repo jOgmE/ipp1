@@ -567,6 +567,27 @@ class Instr:
         except IndexError:
             raise Err_58
 
+    #6.4.4
+    def read(operands):
+        var = operands[0]
+        typ = operands[1]
+
+        inp = input()
+        inp = Data.check(inp)
+        if(typ != inp[1]):
+            pass
+        if(typ == 'bool'):
+            Mem.add_var(var[1], var[2], typ, 'true' if inp[2].lower() == 'true' else 'false')
+        else:
+            Mem.add_var(var[1], var[2], typ, inp[2])
+
+    def write(operands):
+        symb = operands[0]
+        if(symb[1] == 'nil'):
+            print('', end='')
+        else:
+            print(symb, end='')
+
 #----------------------------------------------------------------------------------------
 #                                   INTERPRET
 #----------------------------------------------------------------------------------------
