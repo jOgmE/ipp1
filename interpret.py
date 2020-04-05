@@ -588,6 +588,52 @@ class Instr:
         else:
             print(symb, end='')
 
+    #6.4.5
+    def concat(operands):
+        var = operands[0]
+        symb1 = Instr.get_symb_symb(operands[1])
+        symb2 = Instr.get_symb_symb(operands[2])
+
+        if(symb1[1] != 'string' and symb2[1] != 'string'):
+            pass
+        Mem.add_var(var[1], var[2], 'string', symb1[2] + symb2[2])
+
+    def strlen(operands):
+        var = operands[0]
+        symb = Instr.get_symb_symb(operands[1])
+
+        Mem.add_var(var[1], var[2], 'int', len(symb[2]))
+
+    def getchar(operands):
+        var = operands[0]
+        symb1 = Instr.get_symb_symb(operands[1])
+        symb2 = Instr.get_symb_symb(operands[2])
+
+        if(symb1[1] != 'string' and symb2[1] != 'int'):
+            pass
+        try:
+            Mem.add_var(var[1], var[2], 'string', symb1[2][symb2[2]])
+        except IndexError:
+            raise Err_58
+
+    def setchar(operands):
+        var = operands[0]
+        symb1 = Instr.get_symb_symb(operands[1])
+        symb2 = Instr.get_symb_symb(operands[2])
+
+        s = Mem.get_var(var[1], var[2])
+        if(s[0] != 'string' and symb1[1] != 'int' and symb2[1] != 'string'):
+            pass
+        try:
+            #turning string to list to change the char
+            s = list(s[1])
+            s[symb1[2]] = symb2[2][0]
+            s = "".join(s)
+            Mem.add_var(var[1], var[2], 'string', s)
+        except IndexError:
+            raise Err_58
+
+
 #----------------------------------------------------------------------------------------
 #                                   INTERPRET
 #----------------------------------------------------------------------------------------
