@@ -61,6 +61,10 @@ class NonInicializedVar(Exception):
 
 class Err_57(Exception):
     pass
+class Err_53(Exception):
+    pass
+class Err_58(Exception):
+    pass
 
 #----------------------------------------------------------------------------------------
 #                            CLASS DEALING WITH THE INPUT FILES
@@ -472,7 +476,7 @@ class Instr:
         symb1 = Instr.get_symb_symb(operands[1])
         symb2 = Instr.get_symb_symb(operands[2])
         if(symb1[1] == 'int' and symb2[1] == 'int'):
-            Mem.add_var(var[1], var[2], 'int', operation(int(symb1[2]), int(symb2[2]))
+            Mem.add_var(var[1], var[2], 'int', operation(int(symb1[2]), int(symb2[2])))
         else:
             pass
 
@@ -489,6 +493,79 @@ class Instr:
         if(Instr.get_symb_symb(operands[2])[2] == 0):
             raise Err_57
         aritmetic(operands, lambda x, y : x//y)
+
+    def relational(operands, can_nil, operator):
+        #can_nil = true
+        #can't_nil = false
+        var = operands[0]
+        symb1 = Instr.get_symb_symb(operands[1])
+        symb2 = Instr.get_symb_symb(operands[2])
+
+        if(symb1[1] == symb2[1] and (symb1[1] != 'nil' and symb2[1] != 'nil') == not can_nil):
+            Mem.add_var(var[1], var[2], 'bool', \
+                    'true' if operator(symb1[2], symb2[2]) else 'false')
+        else:
+            raise Err_53
+
+    def lt(operands):
+        relational(operands, False, lambda x,y : x < y)
+
+    def gt(operands):
+        relational(operands, False, lambda x,y : x < y)
+
+    def eq(operands):
+        relational(operands, True, lambda x,y : x == y)
+
+    def and(operands):
+        var = operands[0]
+        symb1 = Instr.get_symb_symb(operands[1])
+        symb2 = Instr.get_symb_symb(operands[2])
+
+        if(symb1[1] == 'bool' and symb2[1] == 'bool'):
+            Mem.add_var(var[1], var[2], 'bool', \
+                    'true' if symb1[2] == 'true' and symb2[2] == 'true' else 'false')
+        else:
+            raise Err_53
+
+    def or(operands):
+        var = operands[0]
+        symb1 = Instr.get_symb_symb(operands[1])
+        symb2 = Instr.get_symb_symb(operands[2])
+
+        if(symb1[1] == 'bool' and symb2[1] == 'bool'):
+            Mem.add_var(var[1], var[2], 'bool', \
+                    'false' if symb1[2] == 'false' and symb2[2] == 'false' else 'true')
+        else:
+            raise Err_53
+
+    def not(operands):
+        var = operands[0]
+        symb1 = Instr.get_symb_symb(operands[1])
+
+        if(symb1[1] == 'bool'):
+            Mem.add_var(var[1], var[2], 'bool', 'true' if symb2[2] == 'false' else 'false')
+    
+    def int2char(operands):
+        var = operands[0]
+        symb = Instr.get_symb_symb(operands[1])
+        if(symb[1] != 'int'):
+            raise Err_53
+        try:
+            Mem.add_var(var[1], var[2], 'string', chr(symb[2]))
+        except:
+            raise Err_58
+
+    def stri2int(operands):
+        var = operands[0]
+        symb1 = operands[1]
+        symb2 = operands[2]
+
+        if(symb1[1] != 'string' and symb2[1] != 'int'):
+            raise Err_53
+        try:
+            Mem.add_var(var[1], var[2], 'int', str(ord(symb1[2][symb2[2]])))
+        except IndexError:
+            raise Err_58
 
 #----------------------------------------------------------------------------------------
 #                                   INTERPRET
