@@ -304,13 +304,13 @@ class Mem:
         if(f_type == "gf"):
             if(in_frame("gf", v_key)):
                 raise VarRedefinition
-            Mem.gf.update({v_key, []})
+            Mem.gf.update({v_key, ['']})
         #local frame
         if(f_type == "lf"):
             if(hasattrib(Mem, 'lf')):
                 if(in_frame("lf", v_key)):
                     raise VarRedefinition
-                Mem.lf.top().update({v_key, []})
+                Mem.lf.top().update({v_key, ['']})
             else:
                 raise FrameNotDefined
         #temporary frame
@@ -318,7 +318,7 @@ class Mem:
             if(hasattrib(Mem, "tf")):
                 if(in_frame("tf", v_key)):
                     raise VarRedefinition
-                Mem.tf.update({v_key, []})
+                Mem.tf.update({v_key, ['']})
             else:
                 raise FrameNotDefined
 
@@ -368,10 +368,16 @@ class Mem:
 class Instr:
     instructions = {'MOVE':Instr.move, 'CREATEFRAME':Instr.createframe, \
             'PUSHFRAME':Instr.pushframe, 'POPFRAME':Instr.popframe, 'DEFVAR':Instr.defvar, \
-            'CALL':Instr.call, 'RETURN':Instr.ret, 'PUSHS', 'POPS', 'ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', \
-            'AND', 'OR', 'NOT', 'INT2CHAR', 'STRI2INT', 'READ', 'WRITE', 'CONCAT', \
-            'STRLEN', 'GETCHAR', 'SETCHAR', 'TYPE', 'LABEL', 'JUMP', 'JUMPIFEQ', \
-            'JUMPIFNEQ', 'EXIT', 'DPRINT', 'BREAK'}
+            'CALL':Instr.call, 'RETURN':Instr.int_return, 'PUSHS':Instr.pushs, \
+            'POPS':Instr.pops, 'ADD':Instr.add, 'SUB':Instr.sub, 'MUL':Instr.mul, \
+            'IDIV':Instr.idiv, 'LT':Instr.lt, 'GT':Instr.gt, 'EQ':Instr.eq, \
+            'AND':Instr.in_and, 'OR':Instr.in_or, 'NOT':Instr.in_not, \
+            'INT2CHAR':Instr.int2char, 'STRI2INT':Instr.stri2int, 'READ':Instr.read, \
+            'WRITE':Instr.write, 'CONCAT':Instr.concat, 'STRLEN':Instr.strlen, \
+            'GETCHAR':Instr.getchar, 'SETCHAR':Instr.setchar, 'TYPE':Instr.type, \
+            'LABEL':Instr.label, 'JUMP':Instr.jump, 'JUMPIFEQ':Instr.jumpifeq, \
+            'JUMPIFNEQ':Instr.jumpifneq, 'EXIT':Instr.in_exit, 'DPRINT':Instr.dprint, \
+            'BREAK':Instr.in_break}
 
     instr_var_symb = ('MOVE', 'INT2CHAR', 'STRLEN', 'TYPE', 'NOT')
     instr_empty = ('CREATEFRAME', 'PUSHFRAME', 'POPFRAME', 'RETURN', 'BREAK')
@@ -387,7 +393,10 @@ class Instr:
         if(symbol[0] == 'symb'):
             return symbol
         val = Mem.get_var(symbol[1], symbol[2])
-        return ['symb', val[0], val[1]]
+        try:
+            return ['symb', val[0], val[1]]
+        except IndexError:
+            return ['symb', val[0], '']
 
     def move(operands):
         #read the oprnd arr
@@ -448,15 +457,15 @@ class Instr:
         #saving the next instr number after the call
         Mem.call_stack.push(Files.instr_iter.get_order_number() + 1)
         try:
-            Files.instr_iterator.jump(Data.label_book[label])
+            Files.instr_iter.jump(Data.label_book[label])
         except:
             #not found
             raise InvalidOperand
 
-    def ret():
+    def in_return():
         if(Mem.call_stack.size() < 1):
             pass #raise error
-        Files.instr_iterator.jump(Mem.call_stack.pop())
+        Files.instr_iter.jump(Mem.call_stack.pop())
 
     def pushs(operands):
         symbol = operands[0]
@@ -501,7 +510,7 @@ class Instr:
         symb1 = Instr.get_symb_symb(operands[1])
         symb2 = Instr.get_symb_symb(operands[2])
 
-        if(symb1[1] == symb2[1] and (symb1[1] != 'nil' and symb2[1] != 'nil') == not can_nil):
+        if(symb1[1] == symb2[1] and (symb1[1] != 'nil' and symb2[1] != 'nil') == (not can_nil)):
             Mem.add_var(var[1], var[2], 'bool', \
                     'true' if operator(symb1[2], symb2[2]) else 'false')
         else:
@@ -516,7 +525,7 @@ class Instr:
     def eq(operands):
         relational(operands, True, lambda x,y : x == y)
 
-    def and(operands):
+    def in_and(operands):
         var = operands[0]
         symb1 = Instr.get_symb_symb(operands[1])
         symb2 = Instr.get_symb_symb(operands[2])
@@ -527,7 +536,7 @@ class Instr:
         else:
             raise Err_53
 
-    def or(operands):
+    def in_or(operands):
         var = operands[0]
         symb1 = Instr.get_symb_symb(operands[1])
         symb2 = Instr.get_symb_symb(operands[2])
@@ -538,7 +547,7 @@ class Instr:
         else:
             raise Err_53
 
-    def not(operands):
+    def in_not(operands):
         var = operands[0]
         symb1 = Instr.get_symb_symb(operands[1])
 
@@ -633,6 +642,55 @@ class Instr:
         except IndexError:
             raise Err_58
 
+    #6.4.6
+    def typ(operands):
+        var = operands[0]
+        symb = Instr.get_symb_symb(operands[1])
+        Mem.add_var(var[1], var[2], 'string', symb[1])
+
+    #6.4.7
+    def label(operands):
+        #functinality already done in the file traversing
+        #process
+        pass
+
+    def jump(operands):
+        lab = operands[0]
+        Files.instr_iter.jump(Data.label_book[lab[1]])
+
+    def jumpifeqneq(operands, operation):
+        symb1 = Instr.get_symb_symb(operands[1])
+        symb2 = Instr.get_symb_symb(operands[2])
+        if(symb1[1] == symb2[1] and operation(symb1[2], symb2[2])):
+            Files.instr_iter.jump(Data.label_book[operands[0][1]])
+        elif(symb1[1] == 'nil' or symb2[1] == 'nil'):
+            pass #do nothing
+        else:
+            raise Err_53
+
+    def jumpifeq(operands):
+        jumpifeqneq(operands, lambda x,y : x == y)
+
+    def jumpifneq(operands):
+        jumpifeqneq(operands, lambda x,y : x != y)
+
+    def in_exit(operands):
+        symb = Instr.get_symb_symb(operands[0])
+        if(symb[1] == 'int'):
+            if((int(symb[2]) >= 0 and int(symb[2]) <= 49)):
+                sys.exit(int(symb[2]))
+            else:
+                raise Err_57
+        else:
+            raise Err_53
+    #6.4.8
+    def dprint(operands):
+        symb = Instr.get_symb_symb(operands[0])
+        print(symb[1] + '@' + symb2, file=sys.stderr)
+
+    def in_break(operands):
+        #do i want to implement this?
+        pass
 
 #----------------------------------------------------------------------------------------
 #                                   INTERPRET
@@ -694,6 +752,8 @@ class Interpret:
 
         #calling the function of the instruction
         Instr.instructions[code](arg_arr)
+
+    sys.exit(0);
 
 #----------------------------------------------------------------------------------------
 #                               TESTING/MAIN PART
