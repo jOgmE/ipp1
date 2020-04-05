@@ -106,8 +106,6 @@ class Files:
                         raise InvalidOperand
                     if(arg.attrib['type'].lower() != "label"):
                         raise InvalidOperand
-                    except InvalidOperand:
-                        raise InvalidOperand
                     #check label syntax
                     if(Data.check(arg.text)[0] != 'label'):
                         raise InvalidOperand
@@ -144,6 +142,11 @@ class Files:
                 return e.attrib['order']
             except:
                 raise sys.exc_info()
+
+        def get_order_number(self):
+            #function to get the current instrs order number
+            #in the array
+            return self.arr[self.i].attrib['order']
     
 ##continuation of the XmlFile class
     #def __init__(self, source_path, input_path):
@@ -152,15 +155,14 @@ class Files:
     input_path = args.input
 
     if(source_path == 'stdin'):
-        #source_path remains stdin
-        pass
-    else:
-        try:
-            Files.xml = ET.parse(source_path)
-            Files.xml_root = Files.xml.getroot()
-            Files.instr_iter = Files.InstructionIterator(Files.xml_root)
-        except:
-            raise sys.exc_info()
+        #sets stdin - etree can parse from stdin
+        source_path = sys.stdin
+    try:
+        Files.xml = ET.parse(source_path)
+        Files.xml_root = Files.xml.getroot()
+        Files.instr_iter = Files.InstructionIterator(Files.xml_root)
+    except:
+        raise sys.exc_info()
 
     #checking header
     if(Files.root.attrib['language'].lower() != 'ippcode20'):
@@ -357,8 +359,9 @@ class Mem:
 #                             CLASS HANDLING INSTRUCTIONS
 #----------------------------------------------------------------------------------------
 class Instr:
-    instructions = {'MOVE', 'CREATEFRAME', 'PUSHFRAME', 'POPFRAME', 'DEFVAR', 'CALL', \
-            'RETURN', 'PUSHS', 'POPS', 'ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', \
+    instructions = {'MOVE':Instr.move, 'CREATEFRAME':Instr.createframe, \
+            'PUSHFRAME':Instr.pushframe, 'POPFRAME':Instr.popframe, 'DEFVAR':Instr.defvar, \
+            'CALL':Instr.call, 'RETURN':Instr.ret, 'PUSHS', 'POPS', 'ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', \
             'AND', 'OR', 'NOT', 'INT2CHAR', 'STRI2INT', 'READ', 'WRITE', 'CONCAT', \
             'STRLEN', 'GETCHAR', 'SETCHAR', 'TYPE', 'LABEL', 'JUMP', 'JUMPIFEQ', \
             'JUMPIFNEQ', 'EXIT', 'DPRINT', 'BREAK'}
@@ -373,15 +376,10 @@ class Instr:
     instr_var_typ = ('READ')
     instr_lab_symb = ('JUMPIFEQ', 'JUMPIFNEQ')
 
-    def valid_instr(instr):
-        return instr in instructions
-
-    def move(variable, symbol):
-        #try:
-        #    variable = Data.check(var)
-        #    symbol = Data.check(symb)
-        #except InvalidOperand:
-        #    raise InvalidOperand
+    def move(operands):
+        #read the oprnd arr
+        variable = operands[0]
+        symbol = operands[1]
         if(variable[0] == 'var'):
             try:
                 if(symbol[0] == 'symb'):
@@ -393,7 +391,7 @@ class Instr:
                     Mem.add_var(variable[1], variable[2], typ, val)
                 else:
                     raise BadOperandType
-            except VarNotDefined:
+            except VarNotDefined: # Do I need these? is bubbling implicit?
                 raise VarNotDefined
             except FrameNotDefined:
                 raise FrameNotDefined
@@ -415,7 +413,8 @@ class Instr:
     def popframe():
         Mem.pop_tmp_from_loc()
     
-    def defvar(variable):
+    def defvar(operands):
+        variable = operands[0]
         #check var correctness
         try:
             ret = Data.check(variable)
@@ -430,20 +429,21 @@ class Instr:
         #variable declaration
         Mem.declare_var(ret[1], ret[2])
 
-    def call(label, order_number, instr_iterator):
+    def call(operands):
+        label = operands[0]
         #check TODO last_instr > order number
         #saving the next instr number after the call
-        Mem.call_stack.push(order_number + 1)
+        Mem.call_stack.push(Files.instr_iter.get_order_number() + 1)
         try:
-            instr_iterator.jump(Data.label_book[label])
+            Files.instr_iterator.jump(Data.label_book[label])
         except:
             #not found
             raise InvalidOperand
 
-    def return(instr_iterator):
+    def ret():
         if(Mem.call_stack.size() < 1):
             pass #raise error
-        instr_iterator.jump(Mem.call_stack.pop())
+        Files.instr_iterator.jump(Mem.call_stack.pop())
 
     # 1 function = 1 intruction
     # .
@@ -455,19 +455,20 @@ class Instr:
 #----------------------------------------------------------------------------------------
 class Interpret:
     for instr in Files.instr_iter:
-        code = instr.attrib['opcode'] #should be uppercase
-        arg_arr = []
+        code = instr.attrib['opcode'].upper() #case insensitive
+        arg_arr = [] #instructin operands
+        #load all the operands into the arr
         for a in instr:
-            Data.check(a.text)
-            arg_arr.append([a.attrib['type'], a.text])
+            try:
+                arg_arr.append(Data.check(a.text))
+            except:
+                pass
 
         #calling instructions
         if code in Instr.instr_var_symb:
             if(len(arg_arr) != 2):
                 pass #raise error
-            var = Data.check(arg_arr[0])
-            symb = Data.check(arg_arr[1])
-            if(var[0] != 'var' and (symb[0] != 'var' or symb[0] != 'symb')):
+            if(arg_arr[0][0] != 'var' and (arg_arr[1][0] != 'var' or arg_arr[1][0] != 'symb')):
                 pass #raise error
         elif code in Instr.instr_empty:
             if(len(arg_arr) != 0):
@@ -475,23 +476,40 @@ class Interpret:
         elif code in Instr.instr_var:
             if(len(arg_arr) != 1):
                 pass
-            var = Data.check(arg_arr[0])
+            if(arg_arr[0][0] != 'var'):
+                pass
         elif code in Instr.instr_lab:
             if(len(arg_arr) != 1):
                 pass
-            lab = Data.check(arg_arr[0])
+            if(arg_arr[0][0] != 'label'):
+                pass
         elif code in Instr.instr_symb:
             if(len(arg_arr) != 1):
                 pass
-            symb = Data.check(arg_arr[0])
+            if(arg_arr[0][0] != 'symb'):
+                pass
         elif code in Instr.instr_var_symb_symb:
             if(len(arg_arr) != 3):
                 pass
-            var = Data.check(arg_arr[0])
-            symb1 = Data.check(arg_arr[1])
-            symb2 = Data.check(arg_arr[2])
-            #TODO rewrite these ^ to list
-            #what will be passing to instr fce
+            if(arg_arr[0][0] != 'var' and (arg_arr[1][0] != 'var' or arg_arr[1][0] != 'symb') \
+                    and (arg_arr[2][0] != 'var' or arg_arr[2][0] != 'symb')):
+                pass
+        elif code in Instr.instr_var_typ:
+            if(len(arg_arr) != 2):
+                pass
+            if(arg_arr[0][0] != 'var' and arg_arr[1][0] != 'type'):
+                pass
+        elif code in Instr.instr_lab_symb:
+            if(len(arg_arr) != 2):
+                pass
+            if(arg_arr[0][0] != 'label' and \
+                    (arg_arr[1][0] != 'var' or arg_arr[1][0] != 'symb')):
+                pass
+        else:
+            pass
+
+        #calling the function of the instruction
+        Instr.instructions[code](arg_arr)
 
 #----------------------------------------------------------------------------------------
 #                               TESTING/MAIN PART
