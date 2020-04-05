@@ -59,6 +59,9 @@ class NonInicializedVar(Exception):
     ###Raised when trying to read from a noninicialized variable###
     pass
 
+class Err_57(Exception):
+    pass
+
 #----------------------------------------------------------------------------------------
 #                            CLASS DEALING WITH THE INPUT FILES
 #----------------------------------------------------------------------------------------
@@ -376,6 +379,12 @@ class Instr:
     instr_var_typ = ('READ')
     instr_lab_symb = ('JUMPIFEQ', 'JUMPIFNEQ')
 
+    def get_symb_symb(symbol):
+        if(symbol[0] == 'symb'):
+            return symbol
+        val = Mem.get_var(symbol[1], symbol[2])
+        return ['symb', val[0], val[1]]
+
     def move(operands):
         #read the oprnd arr
         variable = operands[0]
@@ -445,10 +454,41 @@ class Instr:
             pass #raise error
         Files.instr_iterator.jump(Mem.call_stack.pop())
 
-    # 1 function = 1 intruction
-    # .
-    # .
-    # .
+    def pushs(operands):
+        symbol = operands[0]
+        Mem.data_stack.push(symbol)
+
+    def pops(operands):
+        f_type = operands[0][1]
+        v_key = operands[0][2]
+        if(Mem.data_stack.is_empty()):
+            pass
+        var = Instr.get_symb_symb(Mem.data_stack.pop())
+        Mem.add_var(f_type, v_key, var[1], var[2])
+
+    #6.4.3
+    def aritmetic(operands, operation):
+        var = operands[0]
+        symb1 = Instr.get_symb_symb(operands[1])
+        symb2 = Instr.get_symb_symb(operands[2])
+        if(symb1[1] == 'int' and symb2[1] == 'int'):
+            Mem.add_var(var[1], var[2], 'int', operation(int(symb1[2]), int(symb2[2]))
+        else:
+            pass
+
+    def add(operands):
+        aritmetic(operands, lambda x, y : x+y)
+
+    def sub(operands):
+        aritmetic(operands, lambda x, y : x-y)
+
+    def mul(operands):
+        aritmetic(operands, lambda x, y : x*y)
+
+    def idiv(operands):
+        if(Instr.get_symb_symb(operands[2])[2] == 0):
+            raise Err_57
+        aritmetic(operands, lambda x, y : x//y)
 
 #----------------------------------------------------------------------------------------
 #                                   INTERPRET
