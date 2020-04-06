@@ -16,7 +16,7 @@ $interpret = "interpret.py";
 #1 - parse only
 #2 - interpret only
 $mode = 0;
-$jexam_path = "/pub/courses/ipp/jexamxml/jexamxml";
+$jexam_path = "/pub/courses/ipp/jexamxml/jexamxml.jar";
 
 $longopts = array(
     "help",
@@ -66,8 +66,8 @@ if(array_key_exists("int-only", $options)){
     }
     $mode = 2;
 }
-if(array_key_exists("jexamxml=", $options)){
-    $jexam_path = $options["jexamxml="];
+if(array_key_exists("jexamxml", $options)){
+    $jexam_path = $options["jexamxml"];
 }
 
 #------------------------------------------------------------------------
@@ -85,8 +85,116 @@ function test_parser($dir){
         if($recur and $file->isDir()) test_parser($dir.$file.'/');
         #testing .src files
         if(preg_match('/\.src$/', $file->getFilename())){
-            $output = testing($dir.$file);
+            $output = run_par($dir.$file);
             $plain_file_name = preg_replace('/\.src$/', '', $file->getPathname());
+
+            #checking existence of .in and .out
+            if(!file_exists($plain_file_name.'.out')){
+                $gen_file = fopen($plain_file_name.'.out', 'w');
+                fclose($gen_file);
+            }
+            if(!file_exists($plain_file_name.'.in')){
+                $gen_file = fopen($plain_file_name.'.in', 'w');
+                fclose($gen_file);
+            }
+
+            ## GENERATING TMP FILES FOR COMPARISION
+            #return code file
+            $rc_file = fopen($plain_file_name . '.tmprc', "w");
+            fwrite($rc_file, intval($output[1]));
+            fclose($rc_file);
+            $passed = check_difference($plain_file_name.'.rc', $plain_file_name.'.tmprc');
+
+            #checking out file only when RC is 0
+            if($output[1] == 0){
+                #output file
+                $xml_file = fopen($plain_file_name . '.tmpout', "w");
+                fwrite($xml_file, $output[0]);
+                fclose($xml_file);
+                $passed = check_xml_difference($plain_file_name.'.out', $plain_file_name.'.tmpout');
+            }
+
+            ## DELETING THE TMP FILES
+            #shell_exec(sprintf("rm -f %s/*.tmprc %s/*.tmpout", $file->getPath(), $file->getPath()));
+
+            #printing out the results
+            printf("Testing %s >>> %s\n", $plain_file_name, $passed ? "Passed" : "Failed");
+        }
+    }
+}
+
+#function to run parser
+#return an array where (xml_output, return_code)
+function run_par($file_name){
+    global $parser;
+    $command = escapeshellcmd($parser);
+    $output = '';
+    $rc = 0;
+    $out = exec("/usr/bin/php ". $command . " <" . $file_name . " 2> /dev/null", $output, $rc);
+    $out = implode("\n", $output) . "\n";
+    if($rc != 0){
+        return array('',$rc);
+    }
+    return array($out, 0);
+}
+
+#function to run interpret
+#return an array where (xml_output, return_code)
+function run_inter($src, $in){
+    global $interpret;
+    $command = escapeshellcmd($interpret);
+    $output = '';
+    $rc = 0;
+    $out = exec("python3 ". $command ." --source=".$src." --input=".$in, $output, $rc);
+    $out = implode("\n", $output);
+    if($rc != 0){
+        return array('',$rc);
+    }
+    return array($out, 0);
+}
+
+#the function test the difference between two files
+#returns:
+#  false - NOT identical files
+#  true  - identical files
+function check_difference($file1, $file2){
+    $out = shell_exec("diff " . $file1 . ' ' . $file2);
+    return empty($out);
+}
+function check_xml_difference($file1, $file2){
+    global $jexam_path;
+    $out = shell_exec("java -jar ". $jexam_path ." ". $file1." ".$file2." | grep 'are identical'");
+    return !empty($out);
+}
+
+
+#------------------------------------------------------------------------
+#                           INTERPRET TESTS
+#------------------------------------------------------------------------
+function test_interpret($dir){
+    global $recur;
+    $passed = true;
+    #iterating through files in the directory
+    #if global variable is set, then going recursive
+    foreach(new DirectoryIterator($dir) as $file){
+        #skipping dot dirs
+        if($file->isDot()) continue;
+        #going recursive - first match dir
+        if($recur and $file->isDir()) test_parser($dir.$file.'/');
+        #testing .src files
+        if(preg_match('/\.src$/', $file->getFilename())){
+            $plain_file_name = preg_replace('/\.src$/', '', $file->getPathname());
+            $output = run_inter($plain_file_name.".src", $plain_file_name.".in");
+
+            #checking existence of .in and .out
+            if(!file_exists($plain_file_name.'.out')){
+                $gen_file = fopen($plain_file_name.'.out', 'w');
+                fclose($gen_file);
+            }
+            if(!file_exists($plain_file_name.'.in')){
+                $gen_file = fopen($plain_file_name.'.in', 'w');
+                fclose($gen_file);
+            }
 
             ## GENERATING TMP FILES FOR COMPARISION
             #return code file
@@ -105,7 +213,7 @@ function test_parser($dir){
             }
 
             ## DELETING THE TMP FILES
-            shell_exec(sprintf("rm -f %s/*.tmprc %s/*.tmpout", $file->getPath(), $file->getPath()));
+            #shell_exec(sprintf("rm -f %s/*.tmprc %s/*.tmpout", $file->getPath(), $file->getPath()));
 
             #printing out the results
             printf("Testing %s >>> %s\n", $plain_file_name, $passed ? "Passed" : "Failed");
@@ -113,30 +221,10 @@ function test_parser($dir){
     }
 }
 
-#function to test parser
-#return an array where (xml_output, return_code)
-function testing($file_name){
-    global $parser;
-    $command = escapeshellcmd($parser);
-    $output = '';
-    $rc = 0;
-    $out = exec("/usr/bin/php ". $command . " <" . $file_name . " 2> /dev/null", $output, $rc);
-    $out = implode("\n", $output) . "\n";
-    if($rc != 0){
-        return array('',$rc);
-    }
-    return array($out, 0);
+if($mode == 1){
+    test_parser($directory);
+}else if($mode == 2){
+    test_interpret($directory);
 }
-
-#the function test the difference between two files
-#returns:
-#  false - NOT identical files
-#  true  - identical files
-function check_difference($file1, $file2){
-    $out = shell_exec("diff " . $file1 . ' ' . $file2);
-    return empty($out);
-}
-
-test_parser($directory);
 
 ?>

@@ -24,47 +24,75 @@ if(args.source == args.input or args.source == None or args.input == None):
 #----------------------------------------------------------------------------------------
 #                                 ERROR HANDLING CLASSES
 #----------------------------------------------------------------------------------------
-class DuplicateError(Exception):
-    ###Raised when the array of instruments has a duplicate###
+class Err_31(Exception):
     pass
-class NegativeOrderNumber(Exception):
-    ###Raised when at least one of the instructions in the array has###
-    ###negative order number###
+class Err_32(Exception):
     pass
-class WrongHeaderError(Exception):
-    ##Raised when the .out file has other language parameter than ippcode20, insensitive###
-    pass
-class BadTag(Exception):
-    ###Raised when bad tag of the element. f.e. attrib among instructions###
-    pass
-class NotFound(Exception):
-    ###Raised when an item not found in the array###
-    pass
-class FrameNotDefined(Exception):
-    ###Raised when accessing non defined Mem frame###
-    pass
-class VarRedefinition(Exception):
-    ###Raised when a redefinition of a var in a frame###
-    pass
-class VarNotDefined(Exception):
-    ###Raised when the variable is not defined in the frame###
-    pass
-class InvalidOperand(Exception):
-    ###Raised when the passed operand of the instr is bad###
-    pass
-class BadOperandType(Exception):
-    ###Raised when an instruction has wrong operand types e.g. var,symb,lab###
-    pass
-class NonInicializedVar(Exception):
-    ###Raised when trying to read from a noninicialized variable###
-    pass
-
-class Err_57(Exception):
+class Err_52(Exception):
     pass
 class Err_53(Exception):
     pass
+class Err_54(Exception):
+    pass
+class Err_55(Exception):
+    pass
+class Err_56(Exception):
+    pass
+class Err_57(Exception):
+    pass
 class Err_58(Exception):
     pass
+
+#----------------------------------------------------------------------------------------
+#                           CHECKING DATA TYPES
+#----------------------------------------------------------------------------------------
+class Data:
+    #label:order number
+    label_book = {}
+    #TODO
+    def check(att):
+        #variable
+        if(re.match('^(GF|TF|LF)@[a-zA-Z_$&%*!?\-]([a-zA-Z_$&%*!?\-\d])*$', att.text)):
+            tmp = att.text.split("@") #frame, name
+            #[var, frame, name]
+            return ['var', tmp[0], tmp[1]]
+        #type
+        typ = att.attrib['type'].lower()
+        if(typ == 'type' and re.fullmatch('(int|string|bool)', att.text)):
+            return ['type', att.text]
+
+        #label
+        if(typ == 'label' and re.match('^[a-zA-Z_$&%*!?\-]([a-zA-Z_$&%*!?\-\d])*$', att.text)):
+            #[label, name]
+            return ['label', att.text]
+
+        #symbol
+        if((re.fullmatch('^nil$', att.text) and typ == 'nil') or \
+                (re.fullmatch('^(true|false)$', att.text.lower()) and typ == 'bool') or \
+                (re.fullmatch('^(\+|\-)*\d+$', att.text) and typ == 'int') or \
+                (re.fullmatch('^([^\\#\s]|\\\d{3})*$', att.text) and typ == 'string')):
+            #[symb, type, value]
+            if(typ == 'string'):
+                att.text = re.sub(r'\\\d{3}', lambda x: chr(int(x.group(0).lstrip(r'\\'))), att.text)
+            return ['symb', typ, att.text]
+
+        #nothign matched
+        raise Err_32
+
+    #searches for a given key in lowcase and returns the key what can be
+    #case insensitive
+    def get_dict_key(dictionary, lowcase_key):
+        return [key for key in dictionary.keys() if key.lower() == lowcase_key]
+
+    def get_lit_type(text):
+        if(re.fullmatch('^nil$', text)):
+            return 'nil'
+        if(re.fullmatch('^(true|false)$', text.lower())):
+            return 'bool'
+        if(re.fullmatch('^(\+|\-)*\d+$', text)):
+            return 'int'
+        if(re.fullmatch('^([^\\#\s]|\\\d{3})*$', text)):
+            return 'string'
 
 #----------------------------------------------------------------------------------------
 #                            CLASS DEALING WITH THE INPUT FILES
@@ -83,39 +111,39 @@ class Files:
 
             #checking instr attributes
             for instr in self.arr:
-                if(not 'opcode' in instr.attrib and not 'order' in instr.attrib \
-                        and len(instr.attrib) != 2):
-                    raise BadTag
+                if(not 'opcode' in instr.attrib or not 'order' in instr.attrib \
+                        or len(instr.attrib) != 2):
+                    raise Err_32
 
             #checking negative order number
             #only the first because sorted array
             if(int(self.arr[0].attrib['order']) < 0):
-                raise NegativeOrderNumber
+                raise Err_32
 
             #checking duplicates
             if(len(self.arr) != len(set([x.attrib['order'] for x in self.arr]))):
-                raise DuplicateError
+                raise Err_32
 
             #checking missing 'instruction' attrib
             if(len([x for x in xml_root if x.tag != 'instruction']) != 0):
-                raise BadTag 
+                raise Err_32 
             #run through the code and save every label and their order number
             #check for redefinition and syntax correctness
             check_label_arr = [label for label in self.arr if label.attrib['opcode'].lower() == "label"]
             if(len(check_label_arr) != len(set(check_label_arr))):
-                raise BadTag
+                raise Err_52
 
             for lab in check_label_arr:
                 #element lvl
                 for arg in lab:
                     #instr arg lvl
                     if(arg.tag != "arg1"):
-                        raise InvalidOperand
+                        raise Err_52
                     if(arg.attrib['type'].lower() != "label"):
-                        raise InvalidOperand
+                        raise Err_52
                     #check label syntax
-                    if(Data.check(arg.text)[0] != 'label'):
-                        raise InvalidOperand
+                    if(Data.check(arg)[0] != 'label'):
+                        raise Err_52
                     #filling the dict with labels
                     Data.label_book.update({arg.text:lab.attrib['order']})
 
@@ -141,14 +169,14 @@ class Files:
                 self.i = self.arr.index(next(x for x in self.arr if int(x.attrib['order']) \
                         == instr_order))
             except:
-                raise NotFound
+                raise Err_32
 
         def sort_key(self, e):
             #function for sorting by the order number of the instr
             try:
-                return e.attrib['order']
-            except:
-                raise sys.exc_info()
+                return int(e.attrib['order'])
+            except: #keyerror or valueerror
+                raise Err_32
 
         def get_order_number(self):
             #function to get the current instrs order number
@@ -165,25 +193,28 @@ class Files:
         #sets stdin - etree can parse from stdin
         source_path = sys.stdin
     try:
-        Files.xml = ET.parse(source_path)
-        Files.xml_root = Files.xml.getroot()
-        Files.instr_iter = Files.InstructionIterator(Files.xml_root)
-    except:
-        raise sys.exc_info()
+        xml = ET.parse(source_path)
+        xml_root = xml.getroot()
+        instr_iter = InstructionIterator(xml_root)
+    except FileNotFoundError:
+        #file can't be opened
+        sys.exit(11)
+    except ET.ParseError:
+        sys.exit(31)
+    except Err_32:
+        sys.exit(32)
 
     #checking header
-    if(Files.root.attrib['language'].lower() != 'ippcode20'):
-        raise WrongHeaderError
+    if(xml_root.attrib['language'].lower() != 'ippcode20'):
+        raise Err_32
 
     #opening the input
-    if(input_path == 'stdin'):
-        #input_path remains stdin
-        pass
-    else:
+    #input_path remains stdin if == stdin
+    if(input_path != 'stdin'):
         try:
-            Files.input_file = open(source_path, 'r');
+            input_file = open(input_path, 'r');
         except:
-            raise sys.exc_info()
+            sys.exit(11)
 
 #generator for instruction arguments
     def get_arg(instr):
@@ -203,45 +234,6 @@ class Files:
         return elem.attr
 
 ##TODO write functions for INPUT
-
-#----------------------------------------------------------------------------------------
-#                           CHECKING DATA TYPES
-#----------------------------------------------------------------------------------------
-class Data:
-    #label:order number
-    label_book = {}
-    #TODO
-    def check(att):
-        #variable
-        if(re.fullmach('/^(GF|TF|LF)@[a-zA-Z_$&%*!?\-]([a-zA-Z_$&%*!?\-\d])*$/', att.text)):
-            tmp = att.text.split("@") #frame, name
-            #[var, frame, name]
-            return ['var', tmp[0], tmp[1]]
-
-        #label
-        if(re.fullmach('/^[a-zA-Z_$&%*!?\-]([a-zA-Z_$&%*!?\-\d])*$/', att.text)):
-            #[label, name]
-            return ['label', att.text]
-
-        #symbol
-        typ = att.attrib['type'].lower()
-        if((re.fullmach('/^nil$/', att.text) and typ == 'nil') or \
-                (re.fullmach('/^(true|false)$/', att.text) and typ == 'bool') or \
-                (re.fullmach('/^(\+|\-)*\d+$/', att.text) and typ == 'int') or \
-                (re.fullmach('/^([^\\#\s]|\\\d{3})*$/', att.text) and typ == 'string')):
-            #[symb, type, value]
-            return ['symb', typ, att.text]
-
-        #type
-        if(typ == 'type' and re.fullmatch('/(int|string|bool)/', att.text)):
-            return ['type', att.text]
-        #nothign matched
-        raise InvalidOperand
-
-    #searches for a given key in lowcase and returns the key what can be
-    #case insensitive
-    def get_dict_key(dictionary, lowcase_key):
-        return [key for key in dictionary.keys() if key.lower() == lowcase_key]
 
 #----------------------------------------------------------------------------------------
 #                               CLASS FOR STACK
@@ -273,16 +265,16 @@ class Mem:
 
     def in_frame(f_type, v_key):
         #f_type can be gf,lf or tf
-        if(f_type == "gf"):
+        if(f_type == "GF"):
             return v_key in Mem.gf
-        if(f_type == "lf"):
-            if(hasattrib(Mem, 'lf')):
+        if(f_type == "LF"):
+            if(hasattr(Mem, 'lf')):
                 return v_key in Mem.lf.top()
-            raise FrameNotDefined
-        if(f_type == "tf"):
-            if(hasattrib(Mem, 'tf')):
+            raise Err_55
+        if(f_type == "TF"):
+            if(hasattr(Mem, 'tf')):
                 return v_key in Mem.tf
-            raise FrameNotDefined
+            raise Err_55
     def create_local_frame():
         Mem.lf = Stack()
     def create_temp_frame():
@@ -292,93 +284,83 @@ class Mem:
     def del_temp_frame():
         del Mem.tf
     def push_tmp_to_loc():
-        if(hasattrib(Mem, "lf") and hasattrib(Mem, "tf")):
-            Mem.lf.push(tf)
+        if(hasattr(Mem, "tf")):
+            if(not hasattr(Mem, "lf")):
+                Mem.create_local_frame()
+            Mem.lf.push(Mem.tf)
         else:
-            raise FrameNotDefined
+            raise Err_55
     def pop_tmp_from_loc():
-        if(hasattrib(Mem, "lf")):
+        if(hasattr(Mem, "lf")):
             Mem.tf = Mem.lf.pop()
+            if(Mem.lf.size() == 0):
+                Mem.del_local_frame()
+        else:
+            raise Err_55
     def declare_var(f_type, v_key):
         #global frame
-        if(f_type == "gf"):
-            if(in_frame("gf", v_key)):
-                raise VarRedefinition
-            Mem.gf.update({v_key, ['']})
+        if(f_type == "GF"):
+            if(Mem.in_frame("GF", v_key)):
+                raise Err_52
+            Mem.gf.update({v_key:['']})
         #local frame
-        if(f_type == "lf"):
-            if(hasattrib(Mem, 'lf')):
-                if(in_frame("lf", v_key)):
-                    raise VarRedefinition
-                Mem.lf.top().update({v_key, ['']})
+        if(f_type == "LF"):
+            if(hasattr(Mem, 'lf')):
+                if(Mem.in_frame("LF", v_key)):
+                    raise Err_52
+                Mem.lf.top().update({v_key:['']})
             else:
-                raise FrameNotDefined
+                raise Err_55
         #temporary frame
-        if(f_type == "tf"):
-            if(hasattrib(Mem, "tf")):
-                if(in_frame("tf", v_key)):
-                    raise VarRedefinition
-                Mem.tf.update({v_key, ['']})
+        if(f_type == "TF"):
+            if(hasattr(Mem, "tf")):
+                if(Mem.in_frame("TF", v_key)):
+                    raise Err_52
+                Mem.tf.update({v_key:['']})
             else:
-                raise FrameNotDefined
+                raise Err_55
 
     def add_var(f_type, v_key, v_type, v_val):
         #global frame
-        if(f_type == "gf"):
-            if(in_frame("gf", v_key)):
+        if(f_type == "GF"):
+            if(Mem.in_frame("GF", v_key)):
                 Mem.gf.update({v_key:[v_type, v_val]})
             else:
-                raise VarNotDefined
+                raise Err_54
         #local frame
-        if(f_type == "lf"):
-            if(hasattrib(Mem, 'lf')):
-                if(in_frame("lf", v_key)):
+        if(f_type == "LF"):
+            if(hasattr(Mem, 'lf')):
+                if(Mem.in_frame("LF", v_key)):
                     Mem.lf.top().update({v_key:[v_type, v_val]})
                 else:
-                    raise VarNotDefined
+                    raise Err_54
             else:
-                raise FrameNotDefined
+                raise Err_55
         #temporary frame
-        if(f_type == "tf"):
-            if(hasattrib(Mem, "tf")):
-                if(in_frame("tf", v_key)):
+        if(f_type == "TF"):
+            if(hasattr(Mem, "tf")):
+                if(Mem.in_frame("TF", v_key)):
                     Mem.tf.update({v_key:[v_type, v_val]})
                 else:
-                    raise VarNotDefined
+                    raise Err_54
             else:
-                raise FrameNotDefined
+                raise Err_55
     def get_var(f_type, v_key):
-        try:
-            if(in_frame(f_type, v_key)):
-                #without error
-                if(f_type == "gf"):
-                    return Mem.gf[v_key]
-                if(f_type == "lf"):
-                    return Mem.lf.top()[v_key]
-                if(f_type == "tf"):
-                    return Mem.tf[v_key]
-            else:
-                raise VarNotFound
-        except FrameNotDefined:
-            raise FrameNotDefined
+        if(Mem.in_frame(f_type, v_key)):
+            #without error
+            if(f_type == "GF"):
+                return Mem.gf[v_key]
+            if(f_type == "LF"):
+                return Mem.lf.top()[v_key]
+            if(f_type == "TF"):
+                return Mem.tf[v_key]
+        else:
+            raise Err_54
 
 #----------------------------------------------------------------------------------------
 #                             CLASS HANDLING INSTRUCTIONS
 #----------------------------------------------------------------------------------------
 class Instr:
-    instructions = {'MOVE':Instr.move, 'CREATEFRAME':Instr.createframe, \
-            'PUSHFRAME':Instr.pushframe, 'POPFRAME':Instr.popframe, 'DEFVAR':Instr.defvar, \
-            'CALL':Instr.call, 'RETURN':Instr.int_return, 'PUSHS':Instr.pushs, \
-            'POPS':Instr.pops, 'ADD':Instr.add, 'SUB':Instr.sub, 'MUL':Instr.mul, \
-            'IDIV':Instr.idiv, 'LT':Instr.lt, 'GT':Instr.gt, 'EQ':Instr.eq, \
-            'AND':Instr.in_and, 'OR':Instr.in_or, 'NOT':Instr.in_not, \
-            'INT2CHAR':Instr.int2char, 'STRI2INT':Instr.stri2int, 'READ':Instr.read, \
-            'WRITE':Instr.write, 'CONCAT':Instr.concat, 'STRLEN':Instr.strlen, \
-            'GETCHAR':Instr.getchar, 'SETCHAR':Instr.setchar, 'TYPE':Instr.type, \
-            'LABEL':Instr.label, 'JUMP':Instr.jump, 'JUMPIFEQ':Instr.jumpifeq, \
-            'JUMPIFNEQ':Instr.jumpifneq, 'EXIT':Instr.in_exit, 'DPRINT':Instr.dprint, \
-            'BREAK':Instr.in_break}
-
     instr_var_symb = ('MOVE', 'INT2CHAR', 'STRLEN', 'TYPE', 'NOT')
     instr_empty = ('CREATEFRAME', 'PUSHFRAME', 'POPFRAME', 'RETURN', 'BREAK')
     instr_var = ('DEFVAR', 'POPS')
@@ -403,68 +385,50 @@ class Instr:
         variable = operands[0]
         symbol = operands[1]
         if(variable[0] == 'var'):
-            try:
-                if(symbol[0] == 'symb'):
-                    Mem.add_var(variable[1], variable[2], symbol[1], symbol[2])
-                elif(symbol[0] == 'var'):
-                    ret = Mem.get_var(symbol[1], symbol[2])
-                    if(ret == []):
-                        raise NonInicializedVar
-                    Mem.add_var(variable[1], variable[2], typ, val)
-                else:
-                    raise BadOperandType
-            except VarNotDefined: # Do I need these? is bubbling implicit?
-                raise VarNotDefined
-            except FrameNotDefined:
-                raise FrameNotDefined
-            except NonInicializedVar:
-                raise NonInicializedVar
+            if(symbol[0] == 'symb'):
+                Mem.add_var(variable[1], variable[2], symbol[1], symbol[2])
+            elif(symbol[0] == 'var'):
+                ret = Mem.get_var(symbol[1], symbol[2])
+                if(ret == []):
+                    raise Err_56
+                Mem.add_var(variable[1], variable[2], typ, val)
+            else:
+                raise Err_53
         else:
-            raise BadOperandType
+            raise Err_53
     
-    def createframe():
+    def createframe(operands):
         Mem.create_temp_frame()
 
-    def pushframe():
-        try:
-            Mem.push_tmp_to_loc()
-            Mem.del_temp_frame()
-        except FrameNotDefined:
-            raise FrameNotDefined
+    def pushframe(operands):
+        Mem.push_tmp_to_loc()
+        Mem.del_temp_frame()
 
-    def popframe():
+    def popframe(operands):
         Mem.pop_tmp_from_loc()
     
     def defvar(operands):
         variable = operands[0]
         #check var correctness
-        try:
-            ret = Data.check(variable)
-        except InvalidOperand:
-            raise InvalidOperand
 
-        if(ret[0] != 'var'):
-            raise InvalidOperand
+        if(variable[0] != 'var'):
+            raise Err_53
         #checking var name existence in the given frame
-        if(Mem.in_frame(ret[1], ret[2])):
-            raise VarRedefinition
+        if(Mem.in_frame(variable[1], variable[2])):
+            raise Err_52
         #variable declaration
-        Mem.declare_var(ret[1], ret[2])
+        Mem.declare_var(variable[1], variable[2])
 
     def call(operands):
         label = operands[0]
         #check TODO last_instr > order number
         #saving the next instr number after the call
         Mem.call_stack.push(Files.instr_iter.get_order_number() + 1)
-        try:
-            Files.instr_iter.jump(Data.label_book[label])
-        except:
-            #not found
-            raise InvalidOperand
+        Files.instr_iter.jump(Data.label_book[label])
 
-    def in_return():
-        if(Mem.call_stack.size() < 1):
-            pass #raise error
+    def in_return(operands):
+        if(Mem.call_stack.is_empty()):
+            raise Err_56
         Files.instr_iter.jump(Mem.call_stack.pop())
 
     def pushs(operands):
@@ -475,7 +439,7 @@ class Instr:
         f_type = operands[0][1]
         v_key = operands[0][2]
         if(Mem.data_stack.is_empty()):
-            pass
+            raise Err_56
         var = Instr.get_symb_symb(Mem.data_stack.pop())
         Mem.add_var(f_type, v_key, var[1], var[2])
 
@@ -487,21 +451,21 @@ class Instr:
         if(symb1[1] == 'int' and symb2[1] == 'int'):
             Mem.add_var(var[1], var[2], 'int', operation(int(symb1[2]), int(symb2[2])))
         else:
-            pass
+            raise Err_53
 
     def add(operands):
-        aritmetic(operands, lambda x, y : x+y)
+        Instr.aritmetic(operands, lambda x, y : x+y)
 
     def sub(operands):
-        aritmetic(operands, lambda x, y : x-y)
+        Instr.aritmetic(operands, lambda x, y : x-y)
 
     def mul(operands):
-        aritmetic(operands, lambda x, y : x*y)
+        Instr.aritmetic(operands, lambda x, y : x*y)
 
     def idiv(operands):
-        if(Instr.get_symb_symb(operands[2])[2] == 0):
+        if(Instr.get_symb_symb(operands[2])[2] == '0'):
             raise Err_57
-        aritmetic(operands, lambda x, y : x//y)
+        Instr.aritmetic(operands, lambda x, y : x//y)
 
     def relational(operands, can_nil, operator):
         #can_nil = true
@@ -517,13 +481,13 @@ class Instr:
             raise Err_53
 
     def lt(operands):
-        relational(operands, False, lambda x,y : x < y)
+        Instr.relational(operands, False, lambda x,y : x < y)
 
     def gt(operands):
-        relational(operands, False, lambda x,y : x < y)
+        Instr.relational(operands, False, lambda x,y : x < y)
 
     def eq(operands):
-        relational(operands, True, lambda x,y : x == y)
+        Instr.relational(operands, True, lambda x,y : x == y)
 
     def in_and(operands):
         var = operands[0]
@@ -581,21 +545,26 @@ class Instr:
         var = operands[0]
         typ = operands[1]
 
-        inp = input()
-        inp = Data.check(inp)
-        if(typ != inp[1]):
-            pass
-        if(typ == 'bool'):
-            Mem.add_var(var[1], var[2], typ, 'true' if inp[2].lower() == 'true' else 'false')
+        if(Files.input_path == 'stdin'):
+            inp = input()
         else:
-            Mem.add_var(var[1], var[2], typ, inp[2])
+            inp = Files.input_file.readline()
+        if(Data.get_lit_type(inp) != typ[1]):
+            raise Err_53
+        #V pripade chybneho nebo
+        #chybejiciho vstupu bude do promenne ⟨var⟩ ulozena hodnota nil@nil.
+        #TODO
+        if(typ == 'bool'):
+            Mem.add_var(var[1], var[2], typ[1], 'true' if inp.lower() == 'true' else 'false')
+        else:
+            Mem.add_var(var[1], var[2], typ[1], inp)
 
     def write(operands):
-        symb = operands[0]
+        symb = Instr.get_symb_symb(operands[0])
         if(symb[1] == 'nil'):
             print('', end='')
         else:
-            print(symb, end='')
+            print(symb[2], end='')
 
     #6.4.5
     def concat(operands):
@@ -604,7 +573,7 @@ class Instr:
         symb2 = Instr.get_symb_symb(operands[2])
 
         if(symb1[1] != 'string' and symb2[1] != 'string'):
-            pass
+            raise Err_53
         Mem.add_var(var[1], var[2], 'string', symb1[2] + symb2[2])
 
     def strlen(operands):
@@ -619,7 +588,7 @@ class Instr:
         symb2 = Instr.get_symb_symb(operands[2])
 
         if(symb1[1] != 'string' and symb2[1] != 'int'):
-            pass
+            raise Err_53
         try:
             Mem.add_var(var[1], var[2], 'string', symb1[2][symb2[2]])
         except IndexError:
@@ -632,7 +601,7 @@ class Instr:
 
         s = Mem.get_var(var[1], var[2])
         if(s[0] != 'string' and symb1[1] != 'int' and symb2[1] != 'string'):
-            pass
+            raise Err_53
         try:
             #turning string to list to change the char
             s = list(s[1])
@@ -692,6 +661,19 @@ class Instr:
         #do i want to implement this?
         pass
 
+    instructions = {'MOVE':move, 'CREATEFRAME':createframe, \
+            'PUSHFRAME':pushframe, 'POPFRAME':popframe, 'DEFVAR':defvar, \
+            'CALL':call, 'RETURN':in_return, 'PUSHS':pushs, \
+            'POPS':pops, 'ADD':add, 'SUB':sub, 'MUL':mul, \
+            'IDIV':idiv, 'LT':lt, 'GT':gt, 'EQ':eq, \
+            'AND':in_and, 'OR':in_or, 'NOT':in_not, \
+            'INT2CHAR':int2char, 'STRI2INT':stri2int, 'READ':read, \
+            'WRITE':write, 'CONCAT':concat, 'STRLEN':strlen, \
+            'GETCHAR':getchar, 'SETCHAR':setchar, 'TYPE':type, \
+            'LABEL':label, 'JUMP':jump, 'JUMPIFEQ':jumpifeq, \
+            'JUMPIFNEQ':jumpifneq, 'EXIT':in_exit, 'DPRINT':dprint, \
+            'BREAK':in_break}
+
 #----------------------------------------------------------------------------------------
 #                                   INTERPRET
 #----------------------------------------------------------------------------------------
@@ -700,58 +682,79 @@ class Interpret:
         code = instr.attrib['opcode'].upper() #case insensitive
         arg_arr = [] #instructin operands
         #load all the operands into the arr
+        i = 1
         for a in instr:
             try:
-                arg_arr.append(Data.check(a.text))
-            except:
-                pass
+                if(a.tag != 'arg'+str(i)):
+                    raise Err_32
+                i += 1
+                arg_arr.append(Data.check(a))
+            except Err_32:
+                sys.exit(32)
 
-        #calling instructions
-        if code in Instr.instr_var_symb:
-            if(len(arg_arr) != 2):
-                pass #raise error
-            if(arg_arr[0][0] != 'var' and (arg_arr[1][0] != 'var' or arg_arr[1][0] != 'symb')):
-                pass #raise error
-        elif code in Instr.instr_empty:
-            if(len(arg_arr) != 0):
-                pass
-        elif code in Instr.instr_var:
-            if(len(arg_arr) != 1):
-                pass
-            if(arg_arr[0][0] != 'var'):
-                pass
-        elif code in Instr.instr_lab:
-            if(len(arg_arr) != 1):
-                pass
-            if(arg_arr[0][0] != 'label'):
-                pass
-        elif code in Instr.instr_symb:
-            if(len(arg_arr) != 1):
-                pass
-            if(arg_arr[0][0] != 'symb'):
-                pass
-        elif code in Instr.instr_var_symb_symb:
-            if(len(arg_arr) != 3):
-                pass
-            if(arg_arr[0][0] != 'var' and (arg_arr[1][0] != 'var' or arg_arr[1][0] != 'symb') \
-                    and (arg_arr[2][0] != 'var' or arg_arr[2][0] != 'symb')):
-                pass
-        elif code in Instr.instr_var_typ:
-            if(len(arg_arr) != 2):
-                pass
-            if(arg_arr[0][0] != 'var' and arg_arr[1][0] != 'type'):
-                pass
-        elif code in Instr.instr_lab_symb:
-            if(len(arg_arr) != 2):
-                pass
-            if(arg_arr[0][0] != 'label' and \
-                    (arg_arr[1][0] != 'var' or arg_arr[1][0] != 'symb')):
-                pass
-        else:
-            pass
+        try:
+            #calling instructions
+            if code in Instr.instr_var_symb:
+                if(len(arg_arr) != 2):
+                    raise Err_52 #??
+                if(arg_arr[0][0] != 'var' and (arg_arr[1][0] != 'var' or arg_arr[1][0] != 'symb')):
+                    raise Err_53
+            elif code in Instr.instr_empty:
+                if(len(arg_arr) != 0):
+                    raise Err_52
+            elif code in Instr.instr_var:
+                if(len(arg_arr) != 1):
+                    raise Err_52
+                if(arg_arr[0][0] != 'var'):
+                    raise Err_53
+            elif code in Instr.instr_lab:
+                if(len(arg_arr) != 1):
+                    raise Err_52
+                if(arg_arr[0][0] != 'label'):
+                    raise Err_53
+            elif code in Instr.instr_symb:
+                if(len(arg_arr) != 1):
+                    raise Err_52
+                if(arg_arr[0][0] != 'symb' and arg_arr[0][0] != 'var'):
+                    raise Err_53
+            elif code in Instr.instr_var_symb_symb:
+                if(len(arg_arr) != 3):
+                    raise Err_52
+                if(arg_arr[0][0] != 'var' and (arg_arr[1][0] != 'var' or arg_arr[1][0] != 'symb') \
+                        and (arg_arr[2][0] != 'var' or arg_arr[2][0] != 'symb')):
+                    raise Err_53
+            elif code in Instr.instr_var_typ:
+                if(len(arg_arr) != 2):
+                    raise Err_52
+                if(arg_arr[0][0] != 'var' and arg_arr[1][0] != 'type'):
+                    raise Err_53
+            elif code in Instr.instr_lab_symb:
+                if(len(arg_arr) != 2):
+                    raise Err_52
+                if(arg_arr[0][0] != 'label' and \
+                        (arg_arr[1][0] != 'var' or arg_arr[1][0] != 'symb')):
+                    raise Err_53
+            else:
+                raise Err_32
 
-        #calling the function of the instruction
-        Instr.instructions[code](arg_arr)
+            #calling the function of the instruction
+            Instr.instructions[code](arg_arr)
+        except Err_32:
+            sys.exit(32)
+        except Err_52:
+            sys.exit(52)
+        except Err_53:
+            sys.exit(53)
+        except Err_54:
+            sys.exit(54)
+        except Err_55:
+            sys.exit(55)
+        except Err_56:
+            sys.exit(56)
+        except Err_57:
+            sys.exit(57)
+        except Err_58:
+            sys.exit(58)
 
     sys.exit(0);
 
