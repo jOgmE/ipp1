@@ -111,20 +111,19 @@ class Files:
 
             #checking instr attributes
             for instr in self.arr:
-                if(not 'opcode' in instr.attrib or not 'order' in instr.attrib \
-                        or len(instr.attrib) != 2):
+                if(not 'opcode' in instr.attrib or not 'order' in instr.attrib):
                     raise Err_32
 
             #checking negative order number
             #only the first because sorted array
-            if(int(self.arr[0].attrib['order']) < 0):
+            if(int(self.arr[0].attrib['order']) < 1):
                 raise Err_32
 
             #checking duplicates
             if(len(self.arr) != len(set([x.attrib['order'] for x in self.arr]))):
                 raise Err_32
 
-            #checking missing 'instruction' attrib
+            #checking missing 'instruction' tag
             if(len([x for x in xml_root if x.tag != 'instruction']) != 0):
                 raise Err_32 
             #run through the code and save every label and their order number
@@ -210,7 +209,7 @@ class Files:
 
     #checking header
     if(xml_root.attrib['language'].lower() != 'ippcode20'):
-        raise Err_32
+        sys.exit(32)
 
     #opening the input
     #input_path remains stdin if == stdin
@@ -704,41 +703,41 @@ class Interpret:
             #calling instructions
             if code in Instr.instr_var_symb:
                 if(len(arg_arr) != 2):
-                    raise Err_52 #??
+                    raise Err_32 #??
                 if(arg_arr[0][0] != 'var' and (arg_arr[1][0] != 'var' or arg_arr[1][0] != 'symb')):
                     raise Err_53
             elif code in Instr.instr_empty:
                 if(len(arg_arr) != 0):
-                    raise Err_52
+                    raise Err_32
             elif code in Instr.instr_var:
                 if(len(arg_arr) != 1):
-                    raise Err_52
+                    raise Err_32
                 if(arg_arr[0][0] != 'var'):
                     raise Err_53
             elif code in Instr.instr_lab:
                 if(len(arg_arr) != 1):
-                    raise Err_52
+                    raise Err_32
                 if(arg_arr[0][0] != 'label'):
                     raise Err_53
             elif code in Instr.instr_symb:
                 if(len(arg_arr) != 1):
-                    raise Err_52
+                    raise Err_32
                 if(arg_arr[0][0] != 'symb' and arg_arr[0][0] != 'var'):
                     raise Err_53
             elif code in Instr.instr_var_symb_symb:
                 if(len(arg_arr) != 3):
-                    raise Err_52
+                    raise Err_32
                 if(arg_arr[0][0] != 'var' and (arg_arr[1][0] != 'var' or arg_arr[1][0] != 'symb') \
                         and (arg_arr[2][0] != 'var' or arg_arr[2][0] != 'symb')):
                     raise Err_53
             elif code in Instr.instr_var_typ:
                 if(len(arg_arr) != 2):
-                    raise Err_52
+                    raise Err_32
                 if(arg_arr[0][0] != 'var' and arg_arr[1][0] != 'type'):
                     raise Err_53
             elif code in Instr.instr_lab_symb_symb:
                 if(len(arg_arr) != 3):
-                    raise Err_52
+                    raise Err_32
                 if(arg_arr[0][0] != 'label' and \
                         (arg_arr[1][0] != 'var' or arg_arr[1][0] != 'symb')):
                     raise Err_53
