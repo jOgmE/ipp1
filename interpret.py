@@ -91,7 +91,7 @@ class Data:
             return 'bool'
         if(re.fullmatch('^(\+|\-)*\d+$', text)):
             return 'int'
-        if(re.fullmatch('^([^\\#\s]|\\\d{3})*$', text)):
+        else:#if(re.fullmatch('^(\\\d{3}|[^#\\\s])*$', text)):
             return 'string'
 
 #----------------------------------------------------------------------------------------
@@ -107,7 +107,7 @@ class Files:
             self.arr = [x for x in xml_root]
             self.length = len(self.arr)
             self.arr.sort(key=self.sort_key)
-            self.last_instr = self.arr[self.length -1].attrib['order']
+            self.last_instr = int(self.arr[self.length -1].attrib['order'])
 
             #checking instr attributes
             for instr in self.arr:
@@ -181,6 +181,8 @@ class Files:
         def get_order_number(self):
             #function to get the current instrs order number
             #in the array
+            if(self.i > self.last_instr):
+                raise StopIteration
             return self.arr[self.i].attrib['order']
     
 ##continuation of the XmlFile class
@@ -524,7 +526,7 @@ class Instr:
         if(symb[1] != 'int'):
             raise Err_53
         try:
-            Mem.add_var(var[1], var[2], 'string', chr(symb[2]))
+            Mem.add_var(var[1], var[2], 'string', chr(int(symb[2])))
         except:
             raise Err_58
 
@@ -548,7 +550,7 @@ class Instr:
         if(Files.input_path == 'stdin'):
             inp = input()
         else:
-            inp = Files.input_file.readline()
+            inp = Files.input_file.readline().rstrip('\n')
         if(Data.get_lit_type(inp) != typ[1]):
             raise Err_53
         #V pripade chybneho nebo
@@ -612,7 +614,7 @@ class Instr:
             raise Err_58
 
     #6.4.6
-    def typ(operands):
+    def in_type(operands):
         var = operands[0]
         symb = Instr.get_symb_symb(operands[1])
         Mem.add_var(var[1], var[2], 'string', symb[1])
@@ -659,7 +661,7 @@ class Instr:
     #6.4.8
     def dprint(operands):
         symb = Instr.get_symb_symb(operands[0])
-        print(symb[1] + '@' + symb2, file=sys.stderr)
+        print(symb[1] + '@' + symb[2], file=sys.stderr)
 
     def in_break(operands):
         #do i want to implement this?
@@ -673,7 +675,7 @@ class Instr:
             'AND':in_and, 'OR':in_or, 'NOT':in_not, \
             'INT2CHAR':int2char, 'STRI2INT':stri2int, 'READ':read, \
             'WRITE':write, 'CONCAT':concat, 'STRLEN':strlen, \
-            'GETCHAR':getchar, 'SETCHAR':setchar, 'TYPE':type, \
+            'GETCHAR':getchar, 'SETCHAR':setchar, 'TYPE':in_type, \
             'LABEL':label, 'JUMP':jump, 'JUMPIFEQ':jumpifeq, \
             'JUMPIFNEQ':jumpifneq, 'EXIT':in_exit, 'DPRINT':dprint, \
             'BREAK':in_break}
