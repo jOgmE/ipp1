@@ -34,7 +34,9 @@ $longopts = array(
 #------------------------------------------------------------------------
 $options = getopt("",$longopts);
 if(array_key_exists('help', $options)){
-    echo "help\n"; #TODO
+    echo "usage:\nphp test.php [--directory=dirpath] [--parse-script=script]
+             [--int-script=script] [--parse-only] [--int-only] [--jexamxml=script]
+             [--recursive]\n"; #TODO
     exit(0);
 }
 if(array_key_exists("directory", $options)){
@@ -235,6 +237,8 @@ if($mode == 1){
     test_parser($directory);
 }else if($mode == 2){
     test_interpret($directory);
+}else{
+    echo "Under construction.";
 }
 
 ?>
