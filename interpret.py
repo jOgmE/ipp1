@@ -166,8 +166,8 @@ class Files:
         def jump(self, instr_order):
             #setting the index iterator to the instruction pointed by
             try:
-                self.i = self.arr.index(next(x for x in self.arr if int(x.attrib['order']) \
-                        == instr_order))
+                self.i = self.arr.index([x for x in self.arr if x.attrib['order'] \
+                        == instr_order][0])
             except:
                 raise Err_32
 
@@ -369,7 +369,7 @@ class Instr:
     instr_var_symb_symb = ('ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', 'AND', 'OR' \
                             'STRI2INT', 'CONCAT', 'GETCHAR', 'SETCHAR')
     instr_var_typ = ('READ')
-    instr_lab_symb = ('JUMPIFEQ', 'JUMPIFNEQ')
+    instr_lab_symb_symb = ('JUMPIFEQ', 'JUMPIFNEQ')
 
     def get_symb_symb(symbol):
         if(symbol[0] == 'symb'):
@@ -449,7 +449,7 @@ class Instr:
         symb1 = Instr.get_symb_symb(operands[1])
         symb2 = Instr.get_symb_symb(operands[2])
         if(symb1[1] == 'int' and symb2[1] == 'int'):
-            Mem.add_var(var[1], var[2], 'int', operation(int(symb1[2]), int(symb2[2])))
+            Mem.add_var(var[1], var[2], 'int', str(operation(int(symb1[2]), int(symb2[2]))))
         else:
             raise Err_53
 
@@ -625,23 +625,27 @@ class Instr:
 
     def jump(operands):
         lab = operands[0]
-        Files.instr_iter.jump(Data.label_book[lab[1]])
+        try:
+            Files.instr_iter.jump(Data.label_book[lab[1]])
+        except KeyError:
+            raise Err_52
 
     def jumpifeqneq(operands, operation):
         symb1 = Instr.get_symb_symb(operands[1])
         symb2 = Instr.get_symb_symb(operands[2])
-        if(symb1[1] == symb2[1] and operation(symb1[2], symb2[2])):
-            Files.instr_iter.jump(Data.label_book[operands[0][1]])
+        if(symb1[1] == symb2[1]):
+            if(operation(symb1[2], symb2[2])):
+                Files.instr_iter.jump(Data.label_book[operands[0][1]])
         elif(symb1[1] == 'nil' or symb2[1] == 'nil'):
             pass #do nothing
         else:
             raise Err_53
 
     def jumpifeq(operands):
-        jumpifeqneq(operands, lambda x,y : x == y)
+        Instr.jumpifeqneq(operands, lambda x,y : x == y)
 
     def jumpifneq(operands):
-        jumpifeqneq(operands, lambda x,y : x != y)
+        Instr.jumpifeqneq(operands, lambda x,y : x != y)
 
     def in_exit(operands):
         symb = Instr.get_symb_symb(operands[0])
@@ -728,8 +732,8 @@ class Interpret:
                     raise Err_52
                 if(arg_arr[0][0] != 'var' and arg_arr[1][0] != 'type'):
                     raise Err_53
-            elif code in Instr.instr_lab_symb:
-                if(len(arg_arr) != 2):
+            elif code in Instr.instr_lab_symb_symb:
+                if(len(arg_arr) != 3):
                     raise Err_52
                 if(arg_arr[0][0] != 'label' and \
                         (arg_arr[1][0] != 'var' or arg_arr[1][0] != 'symb')):
