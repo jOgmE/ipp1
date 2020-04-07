@@ -165,6 +165,8 @@ class Files:
 
         def jump(self, instr_order):
             #setting the index iterator to the instruction pointed by
+            if(int(instr_order) > self.last_instr):
+                raise StopIteration
             try:
                 self.i = self.arr.index([x for x in self.arr if x.attrib['order'] \
                         == instr_order][0])
@@ -183,7 +185,7 @@ class Files:
             #in the array
             if(self.i > self.last_instr):
                 raise StopIteration
-            return self.arr[self.i].attrib['order']
+            return int(self.arr[self.i-1].attrib['order'])
     
 ##continuation of the XmlFile class
     #def __init__(self, source_path, input_path):
@@ -426,7 +428,7 @@ class Instr:
         #check TODO last_instr > order number
         #saving the next instr number after the call
         Mem.call_stack.push(Files.instr_iter.get_order_number() + 1)
-        Files.instr_iter.jump(Data.label_book[label])
+        Files.instr_iter.jump(Data.label_book[label[1]])
 
     def in_return(operands):
         if(Mem.call_stack.is_empty()):
@@ -761,6 +763,8 @@ class Interpret:
             sys.exit(57)
         except Err_58:
             sys.exit(58)
+        except StopIteration:
+            break
 
     sys.exit(0);
 
