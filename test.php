@@ -97,6 +97,11 @@ function test_parser($dir){
                 $gen_file = fopen($plain_file_name.'.in', 'w');
                 fclose($gen_file);
             }
+            if(!file_exists($plain_file_name.'.rc')){
+                $gen_file = fopen($plain_file_name.'.rc', 'w');
+                fwrite($gen_file, 0);
+                fclose($gen_file);
+            }
 
             ## GENERATING TMP FILES FOR COMPARISION
             #return code file
@@ -180,7 +185,7 @@ function test_interpret($dir){
         #skipping dot dirs
         if($file->isDot()) continue;
         #going recursive - first match dir
-        if($recur and $file->isDir()) test_parser($dir.$file.'/');
+        if($recur and $file->isDir()) test_interpret($dir.$file.'/');
         #testing .src files
         if(preg_match('/\.src$/', $file->getFilename())){
             $plain_file_name = preg_replace('/\.src$/', '', $file->getPathname());
@@ -193,6 +198,11 @@ function test_interpret($dir){
             }
             if(!file_exists($plain_file_name.'.in')){
                 $gen_file = fopen($plain_file_name.'.in', 'w');
+                fclose($gen_file);
+            }
+            if(!file_exists($plain_file_name.'.rc')){
+                $gen_file = fopen($plain_file_name.'.rc', 'w');
+                fwrite($gen_file, 0);
                 fclose($gen_file);
             }
 

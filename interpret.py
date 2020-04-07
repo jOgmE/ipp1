@@ -689,14 +689,33 @@ class Interpret:
         code = instr.attrib['opcode'].upper() #case insensitive
         arg_arr = [] #instructin operands
         #load all the operands into the arr
-        i = 1
+        arg1 = False
+        arg2 = False
+        arg3 = False
         for a in instr:
             try:
-                if(a.tag != 'arg'+str(i)):
+                #checking attrib tag correctness
+                if(a.tag == 'arg1' and not arg1):
+                    arg1 = Data.check(a)
+                    arg_arr.append(arg1)
+                elif(a.tag == 'arg2' and not arg2):
+                    arg2 = Data.check(a)
+                elif(a.tag == 'arg3' and not arg3):
+                    arg3 = Data.check(a)
+                else:
                     raise Err_32
-                i += 1
-                arg_arr.append(Data.check(a))
             except Err_32:
+                sys.exit(32)
+        #checking attrib tag order completion
+        if(arg2):
+            if(arg1):
+                arg_arr.append(arg2)
+            else:
+                sys.exit(32)
+        if(arg3):
+            if(arg2):
+                arg_arr.append(arg3)
+            else:
                 sys.exit(32)
 
         try:
