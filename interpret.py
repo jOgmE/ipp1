@@ -552,8 +552,6 @@ class Instr:
             inp = input()
         else:
             inp = Files.input_file.readline().rstrip('\n')
-        if(Data.get_lit_type(inp) != typ[1]):
-            raise Err_53
         #V pripade chybneho nebo
         #chybejiciho vstupu bude do promenne ⟨var⟩ ulozena hodnota nil@nil.
         #TODO
@@ -561,6 +559,9 @@ class Instr:
             Mem.add_var(var[1], var[2], typ[1], 'true' if inp.lower() == 'true' else 'false')
         else:
             Mem.add_var(var[1], var[2], typ[1], inp)
+        #rewriting the var if error
+        if(Data.get_lit_type(inp) != typ[1]):
+            Mem.add_var(var[1], var[2], 'nil', 'nil')
 
     def write(operands):
         symb = Instr.get_symb_symb(operands[0])
