@@ -194,7 +194,8 @@ class Files:
             try:
                 return int(self.arr[self.i].attrib['order'])
             except:
-                raise StopIteration
+                #last instr called this method, go behind that number
+                return int(self.arr[self.i-1].attrib['order'])+1
     
 ##continuation of the XmlFile class
     #def __init__(self, source_path, input_path):
