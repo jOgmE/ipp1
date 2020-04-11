@@ -11,15 +11,18 @@ import re
 #----------------------------------------------------------------------------------------
 #                               PARSING ARGUMENTS
 #----------------------------------------------------------------------------------------
-parser = argparse.ArgumentParser(description="IPP project, part interpret")
-parser.add_argument('--source', nargs='?', default="stdin", \
-        help='vstupni soubor s XML reprezentaci zdrojoveho kodu')
-parser.add_argument('--input', nargs='?', default="stdin", \
-        help='soubor se vstupy pro samotnou interpretaci zadaneho zdrojoveho kodu.')
-args = parser.parse_args()
+class Arguments:
+    parser = argparse.ArgumentParser(description="IPP project, part interpret")
+    parser.add_argument('--source', nargs='?', default="stdin", \
+            help='vstupni soubor s XML reprezentaci zdrojoveho kodu')
+    parser.add_argument('--input', nargs='?', default="stdin", \
+            help='soubor se vstupy pro samotnou interpretaci zadaneho zdrojoveho kodu.')
+    args = parser.parse_args()
 
-if(args.source == args.input or args.source == None or args.input == None):
-    sys.exit(10);
+    if(args.source == args.input or args.source == None or args.input == None):
+        sys.exit(10);
+    source = args.source
+    inp = args.input
 
 #----------------------------------------------------------------------------------------
 #                                 ERROR HANDLING CLASSES
@@ -51,6 +54,9 @@ class Data:
     label_book = {}
     #TODO
     def check(att):
+        #no literal given
+        if(att.text == None):
+            return ['symb', 'string', '']
         #variable
         if(re.match('^(GF|TF|LF)@[a-zA-Z_$&%*!?\-]([a-zA-Z_$&%*!?\-\d])*$', att.text)):
             tmp = att.text.split("@") #frame, name
@@ -106,6 +112,8 @@ class Files:
             #initializing variables
             self.arr = [x for x in xml_root]
             self.length = len(self.arr)
+            if(self.length == 0):
+                sys.exit(0)
             self.arr.sort(key=self.sort_key)
             self.last_instr = int(self.arr[self.length -1].attrib['order'])
 
@@ -179,18 +187,19 @@ class Files:
             except: #keyerror or valueerror
                 raise Err_32
 
-        def get_order_number(self):
-            #function to get the current instrs order number
+        def get_next_order_number(self):
+            #function to get the next instrs order number
             #in the array
-            if(self.i > self.last_instr):
+            try:
+                return int(self.arr[self.i].attrib['order'])
+            except:
                 raise StopIteration
-            return int(self.arr[self.i-1].attrib['order'])
     
 ##continuation of the XmlFile class
     #def __init__(self, source_path, input_path):
     #opening the source
-    source_path = args.source
-    input_path = args.input
+    source_path = Arguments.source
+    input_path = Arguments.inp
 
     if(source_path == 'stdin'):
         #sets stdin - etree can parse from stdin
@@ -352,11 +361,15 @@ class Mem:
         if(Mem.in_frame(f_type, v_key)):
             #without error
             if(f_type == "GF"):
-                return Mem.gf[v_key]
-            if(f_type == "LF"):
-                return Mem.lf.top()[v_key]
-            if(f_type == "TF"):
-                return Mem.tf[v_key]
+                ret = Mem.gf[v_key]
+            elif(f_type == "LF"):
+                ret = Mem.lf.top()[v_key]
+            elif(f_type == "TF"):
+                ret = Mem.tf[v_key]
+
+            if(ret[0] == ''):
+                raise Err_56
+            return ret
         else:
             raise Err_54
 
@@ -426,8 +439,11 @@ class Instr:
         label = operands[0]
         #check TODO last_instr > order number
         #saving the next instr number after the call
-        Mem.call_stack.push(Files.instr_iter.get_order_number() + 1)
-        Files.instr_iter.jump(Data.label_book[label[1]])
+        Mem.call_stack.push(Files.instr_iter.get_next_order_number())
+        try:
+            Files.instr_iter.jump(Data.label_book[label[1]])
+        except KeyError:
+            raise Err_52
 
     def in_return(operands):
         if(Mem.call_stack.is_empty()):
@@ -516,10 +532,10 @@ class Instr:
 
     def in_not(operands):
         var = operands[0]
-        symb1 = Instr.get_symb_symb(operands[1])
+        symb = Instr.get_symb_symb(operands[1])
 
-        if(symb1[1] == 'bool'):
-            Mem.add_var(var[1], var[2], 'bool', 'true' if symb2[2] == 'false' else 'false')
+        if(symb[1] == 'bool'):
+            Mem.add_var(var[1], var[2], 'bool', 'true' if symb[2] == 'false' else 'false')
     
     def int2char(operands):
         var = operands[0]
@@ -536,7 +552,7 @@ class Instr:
         symb1 = operands[1]
         symb2 = operands[2]
 
-        if(symb1[1] != 'string' and symb2[1] != 'int'):
+        if(symb1[1] != 'string' or symb2[1] != 'int'):
             raise Err_53
         try:
             Mem.add_var(var[1], var[2], 'int', str(ord(symb1[2][symb2[2]])))
@@ -549,7 +565,10 @@ class Instr:
         typ = operands[1]
 
         if(Files.input_path == 'stdin'):
-            inp = input()
+            try:
+                inp = input()
+            except EOFError:
+                inp = 'nil'
         else:
             inp = Files.input_file.readline().rstrip('\n')
         #V pripade chybneho nebo
@@ -576,7 +595,7 @@ class Instr:
         symb1 = Instr.get_symb_symb(operands[1])
         symb2 = Instr.get_symb_symb(operands[2])
 
-        if(symb1[1] != 'string' and symb2[1] != 'string'):
+        if(symb1[1] != 'string' or symb2[1] != 'string'):
             raise Err_53
         Mem.add_var(var[1], var[2], 'string', symb1[2] + symb2[2])
 
@@ -591,10 +610,10 @@ class Instr:
         symb1 = Instr.get_symb_symb(operands[1])
         symb2 = Instr.get_symb_symb(operands[2])
 
-        if(symb1[1] != 'string' and symb2[1] != 'int'):
+        if(symb1[1] != 'string' or symb2[1] != 'int'):
             raise Err_53
         try:
-            Mem.add_var(var[1], var[2], 'string', symb1[2][symb2[2]])
+            Mem.add_var(var[1], var[2], 'string', symb1[2][int(symb2[2])])
         except IndexError:
             raise Err_58
 
@@ -604,12 +623,12 @@ class Instr:
         symb2 = Instr.get_symb_symb(operands[2])
 
         s = Mem.get_var(var[1], var[2])
-        if(s[0] != 'string' and symb1[1] != 'int' and symb2[1] != 'string'):
+        if(s[0] != 'string' or symb1[1] != 'int' or symb2[1] != 'string'):
             raise Err_53
         try:
             #turning string to list to change the char
             s = list(s[1])
-            s[symb1[2]] = symb2[2][0]
+            s[int(symb1[2])] = symb2[2][0]
             s = "".join(s)
             Mem.add_var(var[1], var[2], 'string', s)
         except IndexError:
@@ -639,7 +658,10 @@ class Instr:
         symb2 = Instr.get_symb_symb(operands[2])
         if(symb1[1] == symb2[1]):
             if(operation(symb1[2], symb2[2])):
-                Files.instr_iter.jump(Data.label_book[operands[0][1]])
+                try:
+                    Files.instr_iter.jump(Data.label_book[operands[0][1]])
+                except KeyError:
+                    raise Err_52
         elif(symb1[1] == 'nil' or symb2[1] == 'nil'):
             pass #do nothing
         else:
