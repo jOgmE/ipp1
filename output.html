@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<head>
+    <title>IPP projekt</title>
+<style>
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+    text-align: center;
+    padding: 5px;
+}
+table{
+    margin: auto;
+    width: 80%;
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+}
+th, td {
+    padding-left: 15px;
+    padding-right: 15px;
+    color: rgba(255,255,255,0.7);
+}
+th{
+    font-weight:bold;
+    border-bottom-width:medium;
+    background:rgba(255,255,255,0.09);
+}
+td{
+    border-bottom-width:thin;
+}
+#pass{
+    font-weight: bold;
+    opacity: 90%;
+    color: #3BD16F;
+}
+#fail{
+    font-weight: bold;
+    opacity: 90%;
+    color: #DB3A34;
+}
+body{
+    background: #121212;
+}
+</style>
+</head>
+
+<body>
+    <h1 style="text-align:center;padding:2%;color:white;opacity:80%;"><span style="margin-right:5%">Total tests: xxx</span>
+        <span style="margin-right:5%">Passed: <span id=pass>xx</span></span>
+        <span style="margin-right:5%">Failed: <span id=fail>xx</span></span>
+    </h1>
+    <table>
+        <tr>
+            <th>Test one</th>
+            <th>Parser</th>
+            <th>Interpret</th>
+        </tr>
+        <tr>
+            <td>This is the path to the test</td>
+            <td id=fail>FAILED</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>This is the path to the test</td>
+            <td id=pass>PASSED</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>This is the path to the test</td>
+            <td id=pass>PASSED</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>This is the path to the test</td>
+            <td id=pass>PASSED</td>
+            <td>-</td>
+        </tr>
+    </table>
+</body>

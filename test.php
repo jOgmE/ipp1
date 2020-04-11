@@ -18,6 +18,9 @@ $interpret = "interpret.py";
 $mode = 0;
 $jexam_path = "/pub/courses/ipp/jexamxml/jexamxml.jar";
 
+$pass = 0;
+$fail = 0;
+
 $longopts = array(
     "help",
     "directory:",
@@ -119,6 +122,8 @@ function check_xml_difference($file1, $file2){
 function test($dir){
     global $recur;
     global $mode;
+    global $pass;
+    global $fail;
     $passed = true;
     #iterating through files in the directory
     #if global variable is set, then going recursive
@@ -197,6 +202,11 @@ function test($dir){
             #shell_exec(sprintf("rm -f %s/*.tmprc %s/*.tmpout", $file->getPath(), $file->getPath()));
 
             #printing out the results
+            if($passed){
+                $pass += 1;
+            }else{
+                $fail += 1;
+            }
             printf("Testing %s >>> %s\n", $plain_file_name, $passed ? "Passed" : "Failed");
         }
     }
