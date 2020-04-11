@@ -170,7 +170,7 @@ function parse($line){
             if(count($line) == 3 && check_variable_name($line[1]) && check_type($line[2])){
                 $output->write_instr($line_counter-1, strtoupper($instr));
                 $output->write_arg(1,"var",$line[1]);
-                $output->write_arg(2,$line[2],"");
+                $output->write_arg(2,"type",$line[2]);
                 $output->end_element(); //end of instruction
                 break;
             }

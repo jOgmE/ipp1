@@ -175,8 +175,9 @@ class Files:
             if(int(instr_order) > self.last_instr):
                 raise StopIteration
             try:
-                self.i = self.arr.index([x for x in self.arr if x.attrib['order'] \
-                        == instr_order][0])
+                for x in self.arr:
+                    if(int(x.attrib['order']) == int(instr_order)):
+                        self.i = self.arr.index(x)
             except:
                 raise Err_32
 
@@ -382,7 +383,7 @@ class Instr:
     instr_var = ('DEFVAR', 'POPS')
     instr_lab = ('CALL', 'LABEL', 'JUMP')
     instr_symb = ('PUSHS', 'WRITE', 'EXIT', 'DPRINT')
-    instr_var_symb_symb = ('ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', 'AND', 'OR' \
+    instr_var_symb_symb = ('ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', 'AND', 'OR', \
                             'STRI2INT', 'CONCAT', 'GETCHAR', 'SETCHAR')
     instr_var_typ = ('READ')
     instr_lab_symb_symb = ('JUMPIFEQ', 'JUMPIFNEQ')
@@ -407,7 +408,7 @@ class Instr:
                 ret = Mem.get_var(symbol[1], symbol[2])
                 if(ret == []):
                     raise Err_56
-                Mem.add_var(variable[1], variable[2], typ, val)
+                Mem.add_var(variable[1], variable[2], ret[0], ret[1])
             else:
                 raise Err_53
         else:
@@ -486,27 +487,38 @@ class Instr:
             raise Err_57
         Instr.aritmetic(operands, lambda x, y : x//y)
 
-    def relational(operands, can_nil, operator):
-        #can_nil = true
-        #can't_nil = false
+    def relational(operands,  operator):
         var = operands[0]
         symb1 = Instr.get_symb_symb(operands[1])
         symb2 = Instr.get_symb_symb(operands[2])
 
-        if(symb1[1] == symb2[1] and (symb1[1] != 'nil' and symb2[1] != 'nil') == (not can_nil)):
+        if(symb1[1] == symb2[1]):
+            if(symb1[1] == 'int'):
+                symb1[2] = int(symb1[2])
+            if(symb2[1] == 'int'):
+                symb2[2] = int(symb2[2])
             Mem.add_var(var[1], var[2], 'bool', \
                     'true' if operator(symb1[2], symb2[2]) else 'false')
         else:
             raise Err_53
 
     def lt(operands):
-        Instr.relational(operands, False, lambda x,y : x < y)
+        Instr.relational(operands, lambda x,y : x < y)
 
     def gt(operands):
-        Instr.relational(operands, False, lambda x,y : x < y)
+        Instr.relational(operands, lambda x,y : x > y)
 
     def eq(operands):
-        Instr.relational(operands, True, lambda x,y : x == y)
+        try:
+            Instr.relational(operands, lambda x,y : x == y)
+        except Err_53:
+            var = operands[0]
+            symb1 = Instr.get_symb_symb(operands[1])
+            symb2 = Instr.get_symb_symb(operands[2])
+            if(symb1[1] == 'nil' or symb2[1] == 'nil'):
+                Mem.add_var(var[1], var[2], 'bool', 'true' if symb1[2] == symb2[2] else 'false')
+            else:
+                raise Err_53
 
     def in_and(operands):
         var = operands[0]
@@ -544,18 +556,18 @@ class Instr:
             raise Err_53
         try:
             Mem.add_var(var[1], var[2], 'string', chr(int(symb[2])))
-        except:
+        except ValueError:
             raise Err_58
 
     def stri2int(operands):
         var = operands[0]
-        symb1 = operands[1]
-        symb2 = operands[2]
+        symb1 = Instr.get_symb_symb(operands[1])
+        symb2 = Instr.get_symb_symb(operands[2])
 
         if(symb1[1] != 'string' or symb2[1] != 'int'):
             raise Err_53
         try:
-            Mem.add_var(var[1], var[2], 'int', str(ord(symb1[2][symb2[2]])))
+            Mem.add_var(var[1], var[2], 'int', str(ord(symb1[2][int(symb2[2])])))
         except IndexError:
             raise Err_58
 
@@ -568,19 +580,24 @@ class Instr:
             try:
                 inp = input()
             except EOFError:
+                typ[1] = 'nil'
                 inp = 'nil'
         else:
-            inp = Files.input_file.readline().rstrip('\n')
+            inp = Files.input_file.readline()
+            if(len(inp) == 0):
+                #EOF
+                typ[1] = 'nil'
+                inp = 'nil'
+            inp = inp.rstrip('\n')
         #V pripade chybneho nebo
         #chybejiciho vstupu bude do promenne ⟨var⟩ ulozena hodnota nil@nil.
-        #TODO
-        if(typ == 'bool'):
+        if(typ[1] == 'bool'):
             Mem.add_var(var[1], var[2], typ[1], 'true' if inp.lower() == 'true' else 'false')
         else:
             Mem.add_var(var[1], var[2], typ[1], inp)
-        #rewriting the var if error
-        if(Data.get_lit_type(inp) != typ[1]):
-            Mem.add_var(var[1], var[2], 'nil', 'nil')
+            #rewriting the var if error
+            if(Data.get_lit_type(inp) != typ[1]):
+                Mem.add_var(var[1], var[2], 'nil', 'nil')
 
     def write(operands):
         symb = Instr.get_symb_symb(operands[0])
@@ -637,7 +654,11 @@ class Instr:
     #6.4.6
     def in_type(operands):
         var = operands[0]
-        symb = Instr.get_symb_symb(operands[1])
+        try:
+            symb = Instr.get_symb_symb(operands[1])
+        except Err_56:
+            #the variable is not inicialized
+            symb = ['symb', '']
         Mem.add_var(var[1], var[2], 'string', symb[1])
 
     #6.4.7
@@ -656,14 +677,12 @@ class Instr:
     def jumpifeqneq(operands, operation):
         symb1 = Instr.get_symb_symb(operands[1])
         symb2 = Instr.get_symb_symb(operands[2])
-        if(symb1[1] == symb2[1]):
+        if(symb1[1] == symb2[1] or (symb1[1] == 'nil' or symb2[1] == 'nil')):
             if(operation(symb1[2], symb2[2])):
                 try:
                     Files.instr_iter.jump(Data.label_book[operands[0][1]])
                 except KeyError:
                     raise Err_52
-        elif(symb1[1] == 'nil' or symb2[1] == 'nil'):
-            pass #do nothing
         else:
             raise Err_53
 
