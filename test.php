@@ -125,13 +125,18 @@ function test($dir){
     global $pass;
     global $fail;
     $passed = true;
+
+    #html
+    $table = "<table><tr><th>".$dir."</th><th>Parser</th><th>Interpret</th></tr>";
+    $rec_table = "";
+
     #iterating through files in the directory
     #if global variable is set, then going recursive
     foreach(new DirectoryIterator($dir) as $file){
         #skipping dot dirs
         if($file->isDot()) continue;
         #going recursive - first match dir
-        if($recur and $file->isDir()) test($dir.$file.'/');
+        if($recur and $file->isDir()) $rec_table = test($dir.$file.'/');
         #testing .src files
         if(preg_match('/\.src$/', $file->getFilename())){
             $plain_file_name = preg_replace('/\.src$/', '', $file->getPathname());
@@ -199,19 +204,104 @@ function test($dir){
             }
 
             ## DELETING THE TMP FILES
-            #shell_exec(sprintf("rm -f %s/*.tmprc %s/*.tmpout", $file->getPath(), $file->getPath()));
+            shell_exec(sprintf("rm -f %s/*.tmprc %s/*.tmpout", $file->getPath(), $file->getPath()));
 
-            #printing out the results
+            #counting the results
             if($passed){
                 $pass += 1;
             }else{
                 $fail += 1;
             }
-            printf("Testing %s >>> %s\n", $plain_file_name, $passed ? "Passed" : "Failed");
+
+            #generating html output (and saving for later usage)
+            $table = $table."<tr><td>".$file->getFilename()."</td>";
+            if($mode == 0){
+                if($passed){
+                    $table = $table."<td id=pass>PASSED</td><td id=pass>PASSED</td></tr>";
+                }else{
+                    $table = $table."<td id=fail>FAILED</td><td id=fail>FAILED</td></tr>";
+                }
+            }
+            elseif($mode == 1){
+                if($passed){
+                    $table = $table."<td id=pass>PASSED</td><td>-</td></tr>";
+                }else{
+                    $table = $table."<td id=fail>FAILED</td><td>-</td></tr>";
+                }
+            }
+            elseif($mode == 2){
+                if($passed){
+                    $table = $table."<td>-</td><td id=pass>PASSED</td></tr>";
+                }else{
+                    $table = $table."<td>-</td><td id=fail>FAILED</td></tr>";
+                }
+            }
+            #printf("Testing %s >>> %s\n", $plain_file_name, $passed ? "Passed" : "Failed");
         }
     }
+
+    #echo $rec_table;
+
+    return $rec_table.$table."</table>";
 }
 
-test($directory);
+$html_tables = test($directory);
+echo $html_tables;
+
+$html_page = "
+<!DOCTYPE html>
+<head>
+    <title>IPP projekt</title>
+<style>
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+    text-align: center;
+    padding: 5px;
+}
+table{
+    margin: auto;
+    width: 80%;
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding-bottom: 5%;
+}
+th, td {
+    padding-left: 15px;
+    padding-right: 15px;
+    color: rgba(255,255,255,0.7);
+}
+th{
+    font-weight:bold;
+    border-bottom-width:medium;
+    background:rgba(255,255,255,0.09);
+}
+td{
+    border-bottom-width:thin;
+}
+#pass{
+    font-weight: bold;
+    opacity: 90%;
+    color: #3BD16F;
+}
+#fail{
+    font-weight: bold;
+    opacity: 90%;
+    color: #DB3A34;
+}
+body{
+    background: #121212;
+}
+</style>
+</head>
+
+<body>
+    <h1 style=\"text-align:center;padding:2%;color:white;opacity:80%;\"><span style=\"margin-right:5%\">Total tests: ".strval($fail+$pass)."</span>
+        <span style=\"margin-right:5%\">Passed: <span id=pass>".strval($pass)."</span></span>
+        <span style=\"margin-right:5%\">Failed: <span id=fail>".strval($fail)."</span></span>
+    </h1>
+".$html_tables."</body>";
+
+#echo $html_page;
 
 ?>
