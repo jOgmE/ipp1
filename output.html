@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <head>
     <title>IPP projekt</title>
@@ -13,8 +14,10 @@ table{
     width: 80%;
     background: rgba(255,255,255,0.08);
     border-radius: 10px;
+    margin-bottom: 1%;
 }
 th, td {
+    position:relative;
     padding-left: 15px;
     padding-right: 15px;
     color: rgba(255,255,255,0.7);
@@ -37,6 +40,14 @@ td{
     opacity: 90%;
     color: #DB3A34;
 }
+#dir{
+    position:relative;
+    width:60%;
+}
+#state{
+    position:relative;
+    width:20%;
+}
 body{
     background: #121212;
 }
@@ -44,35 +55,8 @@ body{
 </head>
 
 <body>
-    <h1 style="text-align:center;padding:2%;color:white;opacity:80%;"><span style="margin-right:5%">Total tests: xxx</span>
-        <span style="margin-right:5%">Passed: <span id=pass>xx</span></span>
-        <span style="margin-right:5%">Failed: <span id=fail>xx</span></span>
+    <h1 style="text-align:center;padding:2%;color:white;opacity:80%;"><span style="margin-right:5%">Total tests: 136</span>
+        <span style="margin-right:5%">Passed: <span id=pass>55</span></span>
+        <span style="margin-right:5%">Failed: <span id=fail>81</span></span>
     </h1>
-    <table>
-        <tr>
-            <th>Test one</th>
-            <th>Parser</th>
-            <th>Interpret</th>
-        </tr>
-        <tr>
-            <td>This is the path to the test</td>
-            <td id=fail>FAILED</td>
-            <td>-</td>
-        </tr>
-        <tr>
-            <td>This is the path to the test</td>
-            <td id=pass>PASSED</td>
-            <td>-</td>
-        </tr>
-        <tr>
-            <td>This is the path to the test</td>
-            <td id=pass>PASSED</td>
-            <td>-</td>
-        </tr>
-        <tr>
-            <td>This is the path to the test</td>
-            <td id=pass>PASSED</td>
-            <td>-</td>
-        </tr>
-    </table>
-</body>
+<table><tr><th id=dir>ipp-2020-tests/interpret-only/jumps/</th><th id=state>Parser</th><th id=state>Interpret</th></tr><tr><td>duplicateLabel.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>nonexistLabel.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>jumpifeq.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>jumpForward.src</td><td>-</td><td id=pass>PASSED</td></tr></table><table><tr><th id=dir>ipp-2020-tests/interpret-only/valid/order/</th><th id=state>Parser</th><th id=state>Interpret</th></tr><tr><td>unordered_instructions.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>discontinuously_ordered_instructions.src</td><td>-</td><td id=pass>PASSED</td></tr></table><table><tr><th id=dir>ipp-2020-tests/interpret-only/valid/</th><th id=state>Parser</th><th id=state>Interpret</th></tr><tr><td>dprint.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>stack_test.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>exit.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>defvar_move.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>read.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>write.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>type.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>label_call_return.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>all_program_attributes.src</td><td>-</td><td id=pass>PASSED</td></tr></table><table><tr><th id=dir>ipp-2020-tests/interpret-only/31/</th><th id=state>Parser</th><th id=state>Interpret</th></tr><tr><td>fucked_up_xml.src</td><td>-</td><td id=pass>PASSED</td></tr></table><table><tr><th id=dir>ipp-2020-tests/interpret-only/xml_structure/</th><th id=state>Parser</th><th id=state>Interpret</th></tr><tr><td>space_order.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>negative_order.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>xml_format1.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>instruction_attrib.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>wrong_tag2.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>xml_fromat2.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>wrong_tag1.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>arg_quantity2.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>instruction_order1.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>arg_attrib.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>arg_quantity1.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>arg_order1.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>zero_order.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>arg_quantity3.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>wrong_opcode.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>wrong_language.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>duplicate_order.src</td><td>-</td><td id=pass>PASSED</td></tr></table><table><tr><th id=dir>ipp-2020-tests/interpret-only/32/</th><th id=state>Parser</th><th id=state>Interpret</th></tr><tr><td>missing_opcode.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>negative_order.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>bad_root_element.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>write_test.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>duplicit_order.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>missing_argument.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>bad_argument_tag.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>string_order.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>unknown_element2.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>unknown_element.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>missing_order.src</td><td>-</td><td id=pass>PASSED</td></tr></table><table><tr><th id=dir>ipp-2020-tests/interpret-only/arithmetic/</th><th id=state>Parser</th><th id=state>Interpret</th></tr><tr><td>stringAdd.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>incorrectInt.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>nil.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>zeroDiv.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>negativeNum.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>correct.src</td><td>-</td><td id=pass>PASSED</td></tr></table><table><tr><th id=dir>ipp-2020-tests/interpret-only/float_tests/</th><th id=state>Parser</th><th id=state>Interpret</th></tr><tr><td>float_move2.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_sub_float_int.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_mul_float_float.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_int2float_undefined_frame2.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_float2int_uninicialized_variable.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_div_float_int.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_accepted_numbers.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_int2float_wrong_operand.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_add_float_int.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_div_zero.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_mul_float_int.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_accepted_numbers2.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_int2float_undefined_var.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_float2int_wrong_operand.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_pushs.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_int2float_wrong_operand2.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_accepted_numbers4.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_read_wrongfloat.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_float2int_undefined_var2.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_accepted_numbers5.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_int2float_undefined_frame.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_read.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_accepted_numbers3.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_float2int_undefined_frame2.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_float2int_undefined_var.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_sub_float_float.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_float2int.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_float2int_undefined_frame.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_int2float_undefined_var2.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_int2float.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_accepted_numbers6.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_move.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_add_float_float.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_tf_lf.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_float2int_wrong_operand2.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_int2float_uninicialized_variable.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>float_div_float_float.src</td><td>-</td><td id=fail>FAILED</td></tr></table><table><tr><th id=dir>ipp-2020-tests/interpret-only/stack_tests/stack_calc/</th><th id=state>Parser</th><th id=state>Interpret</th></tr><tr><td>kalkulacka_STACK_rozsireni.src</td><td>-</td><td id=fail>FAILED</td></tr></table><table><tr><th id=dir>ipp-2020-tests/interpret-only/stack_tests/</th><th id=state>Parser</th><th id=state>Interpret</th></tr><tr><td>stack_lts.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_int2chars_notnumber.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_jumpifneqs_int.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_eqs_differenttype_nil.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_gts_differenttype.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_jumpifeqs_int.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_nots_notbool.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_jumpifeqs_differenttype.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_stri2ints_outofbounds.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_stri2ints_notnumber.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_nots.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_jumpifeqs_differenttype_nil.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_gts_nil.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_muls_notint.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_ors.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_ors_notbool.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_eqs_nil.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_ands.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_eqs_differenttype.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_jumpifneqs_differenttype_nil.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_clears.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_stri2ints_notstring.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_idivs_notint.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_jumpifeqs_bool.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_idivs.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_jumpifneqs_bool.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_jumpifeqs_nil.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_eqs.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_stri2ints.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_subs_notint.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_lts_nil.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_muls.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_subs.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_jumpifneqs_differenttype.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_ands_notbool.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_jumpifneqs_string.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_adds.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_jumpifeqs_string.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_adds_notint.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_int2chars_wrongnumber.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_int2chars.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_gts.src</td><td>-</td><td id=fail>FAILED</td></tr><tr><td>stack_lts_differenttype.src</td><td>-</td><td id=fail>FAILED</td></tr></table><table><tr><th id=dir>ipp-2020-tests/interpret-only/frames/</th><th id=state>Parser</th><th id=state>Interpret</th></tr><tr><td>pushEmpty.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>popEmpty.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>TFafterPush.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>secondLF.src</td><td>-</td><td id=pass>PASSED</td></tr><tr><td>defvarnoTF.src</td><td>-</td><td id=pass>PASSED</td></tr></table></body>
