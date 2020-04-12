@@ -44,6 +44,9 @@ if(array_key_exists('help', $options)){
 }
 if(array_key_exists("directory", $options)){
     $directory = $options["directory"];
+    if(!file_exists($directory)){
+        exit(11);
+    }
     if(!preg_match('/\/$/', $directory)){
         $directory = $directory.'/';
     }
@@ -73,6 +76,17 @@ if(array_key_exists("int-only", $options)){
 }
 if(array_key_exists("jexamxml", $options)){
     $jexam_path = $options["jexamxml"];
+}
+
+#checking files existence
+if(!file_exists($parser)){
+    exit(11);
+}
+if(!file_exists($interpret)){
+    exit(11);
+}
+if(!file_exists($jexam_path)){
+    exit(11);
 }
 
 #function to run parser
@@ -127,7 +141,7 @@ function test($dir){
     $passed = true;
 
     #html
-    $table = "<table><tr><th>".$dir."</th><th>Parser</th><th>Interpret</th></tr>";
+    $table = "<table><tr><th id=dir>".$dir."</th><th id=state>Parser</th><th id=state>Interpret</th></tr>";
     $rec_table = "";
 
     #iterating through files in the directory
@@ -136,7 +150,7 @@ function test($dir){
         #skipping dot dirs
         if($file->isDot()) continue;
         #going recursive - first match dir
-        if($recur and $file->isDir()) $rec_table = test($dir.$file.'/');
+        if($recur and $file->isDir()) $rec_table = $rec_table.test($dir.$file.'/');
         #testing .src files
         if(preg_match('/\.src$/', $file->getFilename())){
             $plain_file_name = preg_replace('/\.src$/', '', $file->getPathname());
@@ -144,14 +158,23 @@ function test($dir){
             #checking existence of .in and .out
             if(!file_exists($plain_file_name.'.out')){
                 $gen_file = fopen($plain_file_name.'.out', 'w');
+                if(!$gen_file){
+                    exit(12);
+                }
                 fclose($gen_file);
             }
             if(!file_exists($plain_file_name.'.in')){
                 $gen_file = fopen($plain_file_name.'.in', 'w');
+                if(!$gen_file){
+                    exit(12);
+                }
                 fclose($gen_file);
             }
             if(!file_exists($plain_file_name.'.rc')){
                 $gen_file = fopen($plain_file_name.'.rc', 'w');
+                if(!$gen_file){
+                    exit(12);
+                }
                 fwrite($gen_file, 0);
                 fclose($gen_file);
             }
@@ -166,6 +189,9 @@ function test($dir){
             ## GENERATING TMP FILES FOR COMPARISION
             #return code file
             $rc_file = fopen($plain_file_name . '.tmprc', "w");
+            if(!$rc_file){
+                exit(12);
+            }
             fwrite($rc_file, intval($output[1])."\n");
             fclose($rc_file);
             $passed = check_difference($plain_file_name.'.rc', $plain_file_name.'.tmprc');
@@ -174,6 +200,9 @@ function test($dir){
             if($output[1] == 0){
                 #output file
                 $xml_file = fopen($plain_file_name . '.tmpout', "w");
+                if(!$xml_file){
+                    exit(12);
+                }
                 fwrite($xml_file, $output[0]);
                 fclose($xml_file);
                 
@@ -182,6 +211,9 @@ function test($dir){
                     $output = run_inter($plain_file_name.".tmpout", $plain_file_name.".in");
                     #return code file
                     $rc_file = fopen($plain_file_name . '.tmprc', "w");
+                    if(!$rc_file){
+                        exit(12);
+                    }
                     fwrite($rc_file, intval($output[1])."\n");
                     fclose($rc_file);
                     $passed = check_difference($plain_file_name.'.rc', $plain_file_name.'.tmprc');
@@ -189,6 +221,9 @@ function test($dir){
                     if($output[1] == 0){
                         #writing output file again
                         $xml_file = fopen($plain_file_name . '.tmpout', "w");
+                        if(!$xml_file){
+                            exit(12);
+                        }
                         fwrite($xml_file, $output[0]);
                         fclose($xml_file);
                     }
@@ -236,17 +271,20 @@ function test($dir){
                     $table = $table."<td>-</td><td id=fail>FAILED</td></tr>";
                 }
             }
+            #command line printout
             #printf("Testing %s >>> %s\n", $plain_file_name, $passed ? "Passed" : "Failed");
         }
     }
 
-    #echo $rec_table;
-
+    #when dir has only dirs = no test output
+    if($table == "<table><tr><th id=dir>".$dir."</th><th id=state>Parser</th><th id=state>Interpret</th></tr>"){
+        return $rec_table;
+    }
+    #new tests were added to the output
     return $rec_table.$table."</table>";
 }
 
 $html_tables = test($directory);
-echo $html_tables;
 
 $html_page = "
 <!DOCTYPE html>
@@ -264,9 +302,10 @@ table{
     width: 80%;
     background: rgba(255,255,255,0.08);
     border-radius: 10px;
-    padding-bottom: 5%;
+    margin-bottom: 1%;
 }
 th, td {
+    position:relative;
     padding-left: 15px;
     padding-right: 15px;
     color: rgba(255,255,255,0.7);
@@ -289,6 +328,14 @@ td{
     opacity: 90%;
     color: #DB3A34;
 }
+#dir{
+    position:relative;
+    width:60%;
+}
+#state{
+    position:relative;
+    width:20%;
+}
 body{
     background: #121212;
 }
@@ -302,6 +349,6 @@ body{
     </h1>
 ".$html_tables."</body>";
 
-#echo $html_page;
+echo $html_page;
 
 ?>
