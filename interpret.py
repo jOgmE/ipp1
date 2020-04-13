@@ -620,8 +620,6 @@ class Instr:
                 typ[1] = 'nil'
                 inp = 'nil'
             inp = inp.rstrip('\n')
-        #V pripade chybneho nebo
-        #chybejiciho vstupu bude do promenne ⟨var⟩ ulozena hodnota nil@nil.
         if(typ[1] == 'bool'):
             Mem.add_var(var[1], var[2], typ[1], 'true' if inp.lower() == 'true' else 'false')
         else:
