@@ -239,7 +239,7 @@ function test($dir){
             }
 
             ## DELETING THE TMP FILES
-            shell_exec(sprintf("rm -f %s/*.tmprc %s/*.tmpout", $file->getPath(), $file->getPath()));
+            #shell_exec(sprintf("rm -f %s/*.tmprc %s/*.tmpout", $file->getPath(), $file->getPath()));
 
             #counting the results
             if($passed){

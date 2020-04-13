@@ -73,7 +73,7 @@ class Data:
             return ['var', tmp[0], tmp[1]]
         #type
         typ = att.attrib['type'].lower()
-        if(typ == 'type' and re.fullmatch('(int|string|bool)', att.text)):
+        if(typ == 'type' and re.fullmatch('(int|string|bool|float)', att.text)):
             #[type, name]
             return ['type', att.text]
 
@@ -86,10 +86,14 @@ class Data:
         if((re.fullmatch('^nil$', att.text) and typ == 'nil') or \
                 (re.fullmatch('^(true|false)$', att.text.lower()) and typ == 'bool') or \
                 (re.fullmatch('^(\+|\-)*\d+$', att.text) and typ == 'int') or \
-                (re.fullmatch('^([^\\#\s]|\\\d{3})*$', att.text) and typ == 'string')):
+                (re.fullmatch(r'^([^\#\s]|\\\d{3})*$', att.text) and typ == 'string')):
+            tmp = att.text
             #[symb, type, value]
             if(typ == 'string'):
-                att.text = re.sub(r'\\\d{3}', lambda x: chr(int(x.group(0).lstrip(r'\\'))), att.text)
+                tmp = re.sub(r'\\\d{3}', lambda x: chr(int(x.group(0).lstrip(r'\\'))), att.text)
+            return ['symb', typ, tmp] 
+        #float symbol
+        if(re.fullmatch(r'^[+|-]?0x[0-9a-fA-F]+(.[0-9a-fA-F]+)?(p[+|-]?\d+)?$', att.text) and typ == 'float'):
             return ['symb', typ, att.text]
 
         #nothign matched
@@ -108,6 +112,8 @@ class Data:
             return 'bool'
         if(re.fullmatch('^(\+|\-)*\d+$', text)):
             return 'int'
+        if(re.fullmatch(r'^[+|-]?0x[0-9a-fA-F]+(.[0-9a-fA-F]+)?(p[+|-]?\d+)?$', text)):
+            return 'float'
         else:
             return 'string'
 
@@ -390,13 +396,13 @@ class Mem:
 #their groupings by the arguments needed for them.
 #Also it implements the instructions as callable functions.
 class Instr:
-    instr_var_symb = ('MOVE', 'INT2CHAR', 'STRLEN', 'TYPE', 'NOT')
+    instr_var_symb = ('MOVE', 'INT2CHAR', 'STRLEN', 'TYPE', 'NOT', 'INT2FLOAT', 'FLOAT2INT')
     instr_empty = ('CREATEFRAME', 'PUSHFRAME', 'POPFRAME', 'RETURN', 'BREAK')
     instr_var = ('DEFVAR', 'POPS')
     instr_lab = ('CALL', 'LABEL', 'JUMP')
     instr_symb = ('PUSHS', 'WRITE', 'EXIT', 'DPRINT')
     instr_var_symb_symb = ('ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', 'AND', 'OR', \
-                            'STRI2INT', 'CONCAT', 'GETCHAR', 'SETCHAR')
+                            'STRI2INT', 'CONCAT', 'GETCHAR', 'SETCHAR', 'DIV')
     instr_var_typ = ('READ')
     instr_lab_symb_symb = ('JUMPIFEQ', 'JUMPIFNEQ')
 
@@ -466,7 +472,7 @@ class Instr:
 
     #6.4.2
     def pushs(operands):
-        symbol = operands[0]
+        symbol = Instr.get_symb_symb(operands[0])
         Mem.data_stack.push(symbol)
 
     def pops(operands):
@@ -484,6 +490,8 @@ class Instr:
         symb2 = Instr.get_symb_symb(operands[2])
         if(symb1[1] == 'int' and symb2[1] == 'int'):
             Mem.add_var(var[1], var[2], 'int', str(operation(int(symb1[2]), int(symb2[2]))))
+        elif(symb1[1] == 'float' and symb2[1] == 'float'):
+            Mem.add_var(var[1], var[2], 'float', float.hex(float(operation(float.fromhex(symb1[2]), float.fromhex(symb2[2])))))
         else:
             raise Err_53
 
@@ -500,6 +508,10 @@ class Instr:
         if(Instr.get_symb_symb(operands[2])[2] == '0'):
             raise Err_57
         Instr.aritmetic(operands, lambda x, y : x//y)
+    def div(operands):
+        if(float.fromhex(Instr.get_symb_symb(operands[2])[2]) == 0.0):
+            raise Err_57
+        Instr.aritmetic(operands, lambda x, y : x/y)
 
     def relational(operands,  operator):
         var = operands[0]
@@ -511,6 +523,11 @@ class Instr:
                 symb1[2] = int(symb1[2])
             if(symb2[1] == 'int'):
                 symb2[2] = int(symb2[2])
+            if(symb1[1] == 'float'):
+                symb1[2] = float.fromhex(symb1[2])
+            if(symb2[1] == 'float'):
+                symb2[2] = float.fromhex(symb2[2])
+            
             Mem.add_var(var[1], var[2], 'bool', \
                     'true' if operator(symb1[2], symb2[2]) else 'false')
         else:
@@ -617,6 +634,8 @@ class Instr:
         symb = Instr.get_symb_symb(operands[0])
         if(symb[1] == 'nil'):
             print('', end='')
+        elif(symb[1] == 'float'):
+            print(float.hex(float.fromhex(symb[2])), end='')
         else:
             print(symb[2], end='')
 
@@ -724,6 +743,29 @@ class Instr:
         #do i want to implement this?
         pass
 
+    #float instr
+    def int2float(operands):
+        var = operands[0]
+        symb = Instr.get_symb_symb(operands[1])
+
+        if(symb[1] != 'int'):
+            raise Err_53
+        try:
+            Mem.add_var(var[1], var[2], 'float', float.hex(float(symb[2])))
+        except ValueError:
+            raise Err_53
+
+    def float2int(operands):
+        var = operands[0]
+        symb = Instr.get_symb_symb(operands[1])
+
+        if(symb[1] != 'float'):
+            raise Err_53
+        try:
+            Mem.add_var(var[1], var[2], 'int', str(int(float.fromhex(symb[2]))))
+        except ValueError:
+            raise Err_53
+
     instructions = {'MOVE':move, 'CREATEFRAME':createframe, \
             'PUSHFRAME':pushframe, 'POPFRAME':popframe, 'DEFVAR':defvar, \
             'CALL':call, 'RETURN':in_return, 'PUSHS':pushs, \
@@ -735,7 +777,8 @@ class Instr:
             'GETCHAR':getchar, 'SETCHAR':setchar, 'TYPE':in_type, \
             'LABEL':label, 'JUMP':jump, 'JUMPIFEQ':jumpifeq, \
             'JUMPIFNEQ':jumpifneq, 'EXIT':in_exit, 'DPRINT':dprint, \
-            'BREAK':in_break}
+            'BREAK':in_break, 'INT2FLOAT':int2float, 'FLOAT2INT':float2int, \
+            'DIV':div}
 
 #----------------------------------------------------------------------------------------
 #                                   INTERPRET
@@ -834,6 +877,10 @@ class Interpret:
         except Err_53:
             sys.exit(53)
         except Err_54:
+            #debug
+            #print(instr.attrib['order'])
+            #print(Mem.lf.top())
+            #print(arg_arr)
             sys.exit(54)
         except Err_55:
             sys.exit(55)
