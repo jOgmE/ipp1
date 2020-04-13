@@ -11,6 +11,7 @@ import re
 #----------------------------------------------------------------------------------------
 #                               PARSING ARGUMENTS
 #----------------------------------------------------------------------------------------
+#Class for realizing argument parsing and holding the given source and input file name
 class Arguments:
     parser = argparse.ArgumentParser(description="IPP project, part interpret")
     parser.add_argument('--source', nargs='?', default="stdin", \
@@ -27,6 +28,7 @@ class Arguments:
 #----------------------------------------------------------------------------------------
 #                                 ERROR HANDLING CLASSES
 #----------------------------------------------------------------------------------------
+#These classes are raised regard the error code described in the assignment
 class Err_31(Exception):
     pass
 class Err_32(Exception):
@@ -49,10 +51,17 @@ class Err_58(Exception):
 #----------------------------------------------------------------------------------------
 #                           CHECKING DATA TYPES
 #----------------------------------------------------------------------------------------
+#This class is holding functions for working with literals.
+#--Data--
+#label_book: a dictionary of all the labels in the code with their order number
+#--Functions--
+#check: checks the given attribute text. It can be variable name, symbol, label or type
+#get_dict_key: returns the saved entry for a label based on a given label. The data holds
+#              the order number of the instruction defining the label name
+#get_lit_type: checks what type the given literal represents. (int, bool, string, nil)
 class Data:
     #label:order number
     label_book = {}
-    #TODO
     def check(att):
         #no literal given
         if(att.text == None):
@@ -65,6 +74,7 @@ class Data:
         #type
         typ = att.attrib['type'].lower()
         if(typ == 'type' and re.fullmatch('(int|string|bool)', att.text)):
+            #[type, name]
             return ['type', att.text]
 
         #label
@@ -85,11 +95,12 @@ class Data:
         #nothign matched
         raise Err_32
 
-    #searches for a given key in lowcase and returns the key what can be
+    #searches for a given key in lowcase and returns key:orderNumber what can be
     #case insensitive
     def get_dict_key(dictionary, lowcase_key):
         return [key for key in dictionary.keys() if key.lower() == lowcase_key]
 
+    #guessing the given literals type
     def get_lit_type(text):
         if(re.fullmatch('^nil$', text)):
             return 'nil'
@@ -97,12 +108,15 @@ class Data:
             return 'bool'
         if(re.fullmatch('^(\+|\-)*\d+$', text)):
             return 'int'
-        else:#if(re.fullmatch('^(\\\d{3}|[^#\\\s])*$', text)):
+        else:
             return 'string'
 
 #----------------------------------------------------------------------------------------
 #                            CLASS DEALING WITH THE INPUT FILES
 #----------------------------------------------------------------------------------------
+#This class represents the given input files (source and input file)
+#the source file is opened, parsed and made ready to use by an iterator
+#the iterator has a jump function to change the flow of the iteration
 class Files:
 
     #Nested class for traversing through instructions
@@ -114,10 +128,12 @@ class Files:
             self.length = len(self.arr)
             if(self.length == 0):
                 sys.exit(0)
+            #sorting the instructions by order numbers
             self.arr.sort(key=self.sort_key)
+            #the last instructions order number
             self.last_instr = int(self.arr[self.length -1].attrib['order'])
 
-            #checking instr attributes
+            #checking instr attribute existence
             for instr in self.arr:
                 if(not 'opcode' in instr.attrib or not 'order' in instr.attrib):
                     raise Err_32
@@ -134,12 +150,15 @@ class Files:
             #checking missing 'instruction' tag
             if(len([x for x in xml_root if x.tag != 'instruction']) != 0):
                 raise Err_32 
+
             #run through the code and save every label and their order number
             #check for redefinition and syntax correctness
             check_label_arr = [label for label in self.arr if label.attrib['opcode'].lower() == "label"]
+            #duplicate labels
             if(len(check_label_arr) != len(set(check_label_arr))):
                 raise Err_52
 
+            #other label checks and dict fillup
             for lab in check_label_arr:
                 #element lvl
                 for arg in lab:
@@ -189,8 +208,9 @@ class Files:
                 raise Err_32
 
         def get_next_order_number(self):
-            #function to get the next instrs order number
-            #in the array
+            #returning the next instructions order number
+            #or if the last instr, then by one behind the
+            #last instructions order number
             try:
                 return int(self.arr[self.i].attrib['order'])
             except:
@@ -198,8 +218,7 @@ class Files:
                 return int(self.arr[self.i-1].attrib['order'])+1
     
 ##continuation of the XmlFile class
-    #def __init__(self, source_path, input_path):
-    #opening the source
+    #variables
     source_path = Arguments.source
     input_path = Arguments.inp
 
@@ -207,6 +226,8 @@ class Files:
         #sets stdin - etree can parse from stdin
         source_path = sys.stdin
     try:
+        #parsing the xml and making it ready
+        #for later usage
         xml = ET.parse(source_path)
         xml_root = xml.getroot()
         instr_iter = InstructionIterator(xml_root)
@@ -218,11 +239,11 @@ class Files:
     except Err_32:
         sys.exit(32)
 
-    #checking header
+    #checking the header
     if(xml_root.attrib['language'].lower() != 'ippcode20'):
         sys.exit(32)
 
-    #opening the input
+    #opening the input file
     #input_path remains stdin if == stdin
     if(input_path != 'stdin'):
         try:
@@ -230,28 +251,10 @@ class Files:
         except:
             sys.exit(11)
 
-#generator for instruction arguments
-    def get_arg(instr):
-        for arg in instr:
-            yield arg
-#header attribs
-    def get_header_attrib():
-        return Files.root.attr
-#header tag
-    def get_header_tag():
-        return Files.root.tag
-#accessing an elements tag
-    def get_element_tag(elem):
-        return elem.tag
-#accessing an elements attrs
-    def get_element_attr(elem):
-        return elem.attr
-
-##TODO write functions for INPUT
-
 #----------------------------------------------------------------------------------------
 #                               CLASS FOR STACK
 #----------------------------------------------------------------------------------------
+#auxiliary class for stack variables
 class Stack:
     def __init__(self):
         self.items = []
@@ -269,23 +272,28 @@ class Stack:
 #----------------------------------------------------------------------------------------
 #                               CLASS FOR MEMORY
 #----------------------------------------------------------------------------------------
+#class representing the memory. It holds the memory frames and implements
+#methods for their usage
 class Mem:
     #variables
     gf = {}
-    #lf = Stack()
-    #tf = {}
+    #lf = Stack() -> not defined all the time
+    #tf = {} -> the same ^
     data_stack = Stack()
     call_stack = Stack()
 
+    #returns boolean "is_in_frame" or not
     def in_frame(f_type, v_key):
         #f_type can be gf,lf or tf
         if(f_type == "GF"):
             return v_key in Mem.gf
         if(f_type == "LF"):
+            #checking the definition of the variable lf
             if(hasattr(Mem, 'lf')):
                 return v_key in Mem.lf.top()
             raise Err_55
         if(f_type == "TF"):
+            #checking the definition of the variable tf
             if(hasattr(Mem, 'tf')):
                 return v_key in Mem.tf
             raise Err_55
@@ -378,6 +386,9 @@ class Mem:
 #----------------------------------------------------------------------------------------
 #                             CLASS HANDLING INSTRUCTIONS
 #----------------------------------------------------------------------------------------
+#class for the instructions. It holds the complete list of instructions and
+#their groupings by the arguments needed for them.
+#Also it implements the instructions as callable functions.
 class Instr:
     instr_var_symb = ('MOVE', 'INT2CHAR', 'STRLEN', 'TYPE', 'NOT')
     instr_empty = ('CREATEFRAME', 'PUSHFRAME', 'POPFRAME', 'RETURN', 'BREAK')
@@ -398,6 +409,7 @@ class Instr:
         except IndexError:
             return ['symb', val[0], '']
 
+    #6.4.1
     def move(operands):
         #read the oprnd arr
         variable = operands[0]
@@ -452,6 +464,7 @@ class Instr:
             raise Err_56
         Files.instr_iter.jump(Mem.call_stack.pop())
 
+    #6.4.2
     def pushs(operands):
         symbol = operands[0]
         Mem.data_stack.push(symbol)
@@ -727,14 +740,18 @@ class Instr:
 #----------------------------------------------------------------------------------------
 #                                   INTERPRET
 #----------------------------------------------------------------------------------------
+#the main class implementing the functionality of an interpret.
+#it holds the whole together
 class Interpret:
+    #iterating through instructions
     for instr in Files.instr_iter:
         code = instr.attrib['opcode'].upper() #case insensitive
         arg_arr = [] #instructin operands
-        #load all the operands into the arr
+        #booleans used to determine which argument is on the line
         arg1 = False
         arg2 = False
         arg3 = False
+        #load all the operands into the arr
         for a in instr:
             try:
                 #checking attrib tag correctness
@@ -763,6 +780,7 @@ class Interpret:
 
         try:
             #calling instructions
+            #and checking their arguments correctness
             if code in Instr.instr_var_symb:
                 if(len(arg_arr) != 2):
                     raise Err_32 #??
@@ -808,6 +826,7 @@ class Interpret:
 
             #calling the function of the instruction
             Instr.instructions[code](arg_arr)
+        #handling all the errors raised through the runtime
         except Err_32:
             sys.exit(32)
         except Err_52:
@@ -827,9 +846,5 @@ class Interpret:
         except StopIteration:
             break
 
+    #everything was fine, exit
     sys.exit(0);
-
-#----------------------------------------------------------------------------------------
-#                               TESTING/MAIN PART
-#----------------------------------------------------------------------------------------
-#f = XmlFile(args.source, args.input)
