@@ -789,6 +789,9 @@ class Interpret:
     #iterating through instructions
     for instr in Files.instr_iter:
         code = instr.attrib['opcode'].upper() #case insensitive
+        #optimalization
+        if(code == "LABEL"):
+            continue
         arg_arr = [] #instructin operands
         #booleans used to determine which argument is on the line
         arg1 = False
@@ -877,10 +880,6 @@ class Interpret:
         except Err_53:
             sys.exit(53)
         except Err_54:
-            #debug
-            #print(instr.attrib['order'])
-            #print(Mem.lf.top())
-            #print(arg_arr)
             sys.exit(54)
         except Err_55:
             sys.exit(55)
