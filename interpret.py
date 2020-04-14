@@ -827,7 +827,7 @@ class Interpret:
             #and checking their arguments correctness
             if code in Instr.instr_var_symb:
                 if(len(arg_arr) != 2):
-                    raise Err_32 #??
+                    raise Err_32
                 if(arg_arr[0][0] != 'var' and (arg_arr[1][0] != 'var' or arg_arr[1][0] != 'symb')):
                     raise Err_53
             elif code in Instr.instr_empty:
