@@ -21,3 +21,8 @@ The interpret is written in object orientated paradigm. Except few support class
 ##### Memory
 The `Mem` class holds the frames (local, temporary (which needs to be defined), global, data stack and an instruction stack) and implements the functions for working with the frames.
 ##### Instructions
+Sets are created to determine what instructions take what and how many operands e.g. instruction `jumpifeq` takes 3 operands: a label and two symbols. The class holds a dictionary which has saved all the instructions name and a corresponding function declared inside this class implementing it.
+#### Interpret
+The interpret is the main class of the program. The main idea is to iterate through the instructions already readed in the class Files, get the operands of the current instruction and perform the instruction. There was a problem, the operands of the instruction can be in any order. The solution being used here was creating three boolean variables representing the highest possible number of operands. After all the operands were parsed, the program checks for the correctness of these operands using the booleans. Python does not support switch-case control flow, so the program uses a one-line solution to call the correct function describing the instruction, using the dictionary defined in the class Instructions.
+#### Instruction iterator
+Instruction iterator is a nested class inside Files. It's purpose is to create an iterator through the instructions, but with a support of jumping - changing the flow of the iteration.
