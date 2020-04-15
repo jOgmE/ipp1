@@ -37,7 +37,7 @@ $longopts = array(
 #------------------------------------------------------------------------
 $options = getopt("",$longopts);
 if(array_key_exists('help', $options)){
-    echo "usage:\nphp test.php [--directory=dirpath] [--parse-script=script]
+    echo "usage:\nphp7.4 test.php [--directory=dirpath] [--parse-script=script]
              [--int-script=script] [--parse-only] [--int-only] [--jexamxml=script]
              [--recursive]\n";
     exit(0);
@@ -96,7 +96,7 @@ function run_par($file_name){
     $command = escapeshellcmd($parser);
     $output = '';
     $rc = 0;
-    $out = exec("/usr/bin/php ". $command . " <" . $file_name . " 2> /dev/null", $output, $rc);
+    $out = exec("php7.4 ". $command . " <" . $file_name . " 2> /dev/null", $output, $rc);
     $out = implode("\n", $output) . "\n";
     if($rc != 0){
         return array('',$rc);
@@ -111,7 +111,7 @@ function run_inter($src, $in){
     $command = escapeshellcmd($interpret);
     $output = '';
     $rc = 0;
-    $out = exec("python3 ". $command ." --source=".$src." --input=".$in, $output, $rc);
+    $out = exec("python3.8 ". $command ." --source=".$src." --input=".$in, $output, $rc);
     $out = implode("\n", $output);
     if($rc != 0){
         return array('',$rc);
